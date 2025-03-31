@@ -15,6 +15,9 @@ const LoginFuncionario = ({ onClose }: { onClose: () => void }) => {
 
     try {
       // Hacer la solicitud al servidor (misma URL pero con tipo diferente)
+
+      console.log(rol);
+
       const response = await fetch('http://localhost:8000/', {
         method: 'POST',
         headers: {
@@ -27,9 +30,9 @@ const LoginFuncionario = ({ onClose }: { onClose: () => void }) => {
 
       if (response.ok) {
         // Redirigir según el tipo de usuario
-        if (rol === 'instructor') {
+        if (rol === 'Instructor') {
           navigate('/instructor');
-        } else if (rol === 'administrador') {
+        } else if (rol === 'Administrador') {
           navigate('/admin');
         }
         onClose(); // Cierra el modal después del login
@@ -57,8 +60,8 @@ const LoginFuncionario = ({ onClose }: { onClose: () => void }) => {
             label="Rol"
             onChange={(e) => setRol(e.target.value as string)}
           >
-            <MenuItem value="instructor">Instructor</MenuItem>
-            <MenuItem value="administrador">Administrador</MenuItem>
+            <MenuItem value="Instructor">Instructor</MenuItem>
+            <MenuItem value="Administrador">Administrador</MenuItem>
           </Select>
         </FormControl>
 
