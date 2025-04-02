@@ -26,6 +26,8 @@ const LoginAprendiz = ({ onClose }: { onClose: () => void }) => {
 
       if (response.ok) {
         // Si las credenciales son correctas, redirigir a AprendizPage
+        localStorage.setItem("token",data.token);
+        window.dispatchEvent(new Event("Storage"));
         navigate('/aprendiz');
         onClose(); // Cierra el modal después del login
       } else {
