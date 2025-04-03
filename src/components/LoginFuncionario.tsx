@@ -35,8 +35,11 @@ const LoginFuncionario = ({ onClose }: { onClose: () => void }) => {
         } else if (rol === 'Administrador') {
           navigate('/admin');
         }
-        localStorage.setItem("token",data.token);
+
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("id", data.user.id); 
         window.dispatchEvent(new Event("Storage"));
+        
         onClose(); // Cierra el modal después del login
       } else {
         setError(data.message || 'Credenciales incorrectas');
