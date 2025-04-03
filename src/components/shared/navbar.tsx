@@ -1,10 +1,9 @@
 // src/components/Navbar.tsx
 import React from 'react';
-import { 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  Button, 
+import {
+  AppBar,
+  Toolbar,
+  Typography,
   IconButton,
   Avatar,
   Menu,
@@ -36,14 +35,15 @@ const Navbar: React.FC<NavbarProps> = ({ userType, userName }) => {
     // Eliminar token del localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
-    
+
     // Redirigir al login
     navigate('/login');
     handleClose();
   };
 
   const handleProfile = () => {
-    // Redirigir al perfil según el tipo de usuario
+    //Redirigir al perfil según el tipo de usuario
+    
     navigate(`/${userType}/perfil`);
     handleClose();
   };
@@ -52,9 +52,9 @@ const Navbar: React.FC<NavbarProps> = ({ userType, userName }) => {
     <AppBar position="static" sx={{ mb: 4 }}>
       <Toolbar>
         {/* Logo del proyecto - puedes reemplazar con tu imagen */}
-        <Typography 
-          variant="h6" 
-          component="div" 
+        <Typography
+          variant="h6"
+          component="div"
           sx={{ flexGrow: 1, cursor: 'pointer' }}
           onClick={() => navigate('/')}
         >
