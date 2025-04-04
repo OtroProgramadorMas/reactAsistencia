@@ -56,7 +56,12 @@ const DinamicTable: React.FC<DinamicTableProps> = ({
                 pageSizeOptions={[5, 8, 10, 50, 100]}
                 checkboxSelection
                 disableRowSelectionOnClick
-                sx={{ border: 0 }}
+                sx={{ 
+                    border: 0,
+                    '& .MuiDataGrid-filler': {
+                      display: 'none'
+                    }
+                  }}
             />
         </Paper>
     );

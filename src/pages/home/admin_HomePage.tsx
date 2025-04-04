@@ -9,7 +9,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import Navbar from "../components/shared/navbar";
+import Navbar from "../../components/shared/navbar";
 
 const RegistroUsuarios = () => {
   const [open, setOpen] = useState<string | null>(null);

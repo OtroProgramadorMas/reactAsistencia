@@ -3,9 +3,9 @@ import React, { useState, useEffect, JSX } from 'react';
 import HomePage from './pages/homePage';
 import LoginPage from './pages/loginPage';
 import NotFoundPage from './pages/notFoundPage';
-import AprendizPage from './pages/aprendiz_HomePage';
-import InstructorHomePage from './pages/instructor_HomePage';
-import AdministradorHomePage from './pages/admin_HomePage';
+import AprendizPage from './pages/home/aprendiz_HomePage';
+import InstructorHomePage from './pages/home/instructor_HomePage';
+import AdministradorHomePage from './pages/home/admin_HomePage';
 
 function AuthGuard({ children }: { children: JSX.Element }) {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
