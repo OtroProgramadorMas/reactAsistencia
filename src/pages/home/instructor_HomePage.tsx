@@ -64,7 +64,7 @@ const idFuncionario = localStorage.getItem("id");
 
   return (
     <>
-      <Navbar userType="aprendiz"/>
+      <Navbar/>
       <div style={{ display: "flex" }}>
         <Sidebar dynamicOptions={dynamicOptions} onSelect={handleSelect} />
         <main style={{ flexGrow: 1, padding: "2rem" }}>
