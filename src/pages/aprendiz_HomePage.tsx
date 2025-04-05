@@ -385,7 +385,11 @@ const AprendizHomePage = () => {
                                 <TableCell>
                                   <Chip 
                                     label={asistencia.nombre_tipo_asistencia}
+<<<<<<< HEAD
 
+=======
+                                    
+>>>>>>> 36e5e03548f5b4544f865a646ad084792e5be96b
                                     color={getAsistenciaColor(asistencia.nombre_tipo_asistencia)}
                                     size="small"
                                   />
