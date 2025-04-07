@@ -5,6 +5,7 @@ import Sidebar from "../../components/admin/sidebar"; // Ojo, era 'admin/sidebar
 
 import PanelPrincipal from "../../components/admin/panelPrincipal";
 import AdminPanel from "../../components/admin/panelAgregarAdmin";
+import  ProgramasPanel    from "../../components/admin/panelProgramas";
 
 const AdminHomePage = () => {
   const [selectedOption, setSelectedOption] = useState("Principal");
@@ -19,7 +20,7 @@ const AdminHomePage = () => {
       case "Administrador":
         return <AdminPanel/>
       case "Programa":
-        return <Typography variant="h4">Panel de Programa</Typography>;
+        return <ProgramasPanel/>
       case "Varios":
         return <Typography variant="h4">Panel Varios</Typography>;
       default:
