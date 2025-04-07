@@ -1,8 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import React, { useState, useEffect, JSX } from 'react';
-import HomePage from './pages/homePage';
-import LoginPage from './pages/loginPage';
-import NotFoundPage from './pages/notFoundPage';
+import HomePage from './pages/other/homePage';
+import LoginPage from './pages/other/loginPage';
+import NotFoundPage from './pages/other/notFoundPage';
 import AprendizPage from './pages/home/aprendiz_HomePage';
 import InstructorHomePage from './pages/home/instructor_HomePage';
 import AdministradorHomePage from './pages/home/admin_HomePage';

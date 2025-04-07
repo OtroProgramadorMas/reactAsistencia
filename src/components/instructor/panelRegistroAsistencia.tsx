@@ -1,20 +1,30 @@
 import React, { useState, useEffect } from "react";
 import DinamicTable from "../shared/dataTable";
-import { Button, Radio, RadioGroup, FormControlLabel, Paper, Typography } from "@mui/material";
+import {
+  Button,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  Paper,
+  Typography,
+  Box,
+} from "@mui/material";
+import FichaPaper from "../../components/shared/paper_ficha"; // Asegúrate de que la ruta es correcta
 
 type Asistencia = {
   id: number;
   aprendiz: string;
   documento: string;
   estado: "Presente" | "Ausente" | "Justificado";
-  estadoTemporal?: string; // Para cambios no enviados
+  estadoTemporal?: string;
 };
 
 const PanelRegistroAsistencia = ({ value }: { value: string }) => {
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
-  const [fecha, setFecha] = useState<string>(new Date().toISOString().split('T')[0]); // Formato YYYY-MM-DD
+  const [fecha, setFecha] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  );
 
-  // Datos de ejemplo (en producción, usa una API)
   useEffect(() => {
     const mockData: Asistencia[] = [
       { id: 1, aprendiz: "Juan Pérez", documento: "123456789", estado: "Presente" },
@@ -23,23 +33,21 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
     setAsistencias(mockData);
   }, [value]);
 
-  // Manejar cambios en los radiobuttons
   const handleEstadoChange = (id: number, nuevoEstado: string) => {
-    setAsistencias(prev => 
-      prev.map(item => 
+    setAsistencias((prev) =>
+      prev.map((item) =>
         item.id === id ? { ...item, estadoTemporal: nuevoEstado } : item
       )
     );
   };
 
-  // Enviar datos a la API
   const enviarAsistencias = async () => {
-    const datosParaEnviar = asistencias.map(item => ({
-      fichaId: value, // ID de la ficha desde las props
+    const datosParaEnviar = asistencias.map((item) => ({
+      fichaId: value,
       aprendizId: item.id,
       documento: item.documento,
-      fecha: fecha, // Fecha actual o seleccionada
-      estado: item.estadoTemporal || item.estado, // Usa el temporal si existe
+      fecha: fecha,
+      estado: item.estadoTemporal || item.estado,
     }));
 
     try {
@@ -55,8 +63,7 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
     }
   };
 
-  // Columnas para la tabla
-  const columns: GridColDef[] = [
+  const columns = [
     { field: "aprendiz", headerName: "Aprendiz", width: 200 },
     { field: "documento", headerName: "Documento", width: 130 },
     {
@@ -78,35 +85,46 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
   ];
 
   return (
-    <Paper sx={{ p: 3 }}>
-      <Typography variant="h5" gutterBottom>
-        Registro de Asistencia - Ficha {value} ({fecha})
-      </Typography>
-
-      {/* Selector de fecha (opcional) */}
-      <input 
-        type="date" 
-        value={fecha} 
-        onChange={(e) => setFecha(e.target.value)} 
-        style={{ marginBottom: "16px" }}
-      />
-
-      <DinamicTable 
-        rows={asistencias} 
-        columns={columns} 
-        pagination={{ page: 0, pageSize: 5 }}
-      />
-
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={enviarAsistencias}
-        sx={{ mt: 2 }}
-      >
-        Guardar Asistencias
-      </Button>
-    </Paper>
+    <>
+      <Box display="flex" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={2} mb={3}>
+        {/* Selector de fecha a la izquierda */}
+        <Box>
+          <Typography variant="h6" gutterBottom>Fecha:</Typography>
+          <input
+            type="date"
+            value={fecha}
+            onChange={(e) => setFecha(e.target.value)}
+            style={{ padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
+          />
+        </Box>
+  
+        {/* FichaPaper a la derecha */}
+        <FichaPaper fichaId={Number(value)} />
+      </Box>
+  
+      <Paper sx={{ p: 3 }}>
+        <Typography variant="h5" gutterBottom>
+          Registro de Asistencia ({fecha})
+        </Typography>
+  
+        <DinamicTable
+          rows={asistencias}
+          columns={columns}
+          pagination={{ page: 0, pageSize: 5 }}
+        />
+  
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={enviarAsistencias}
+          sx={{ mt: 2 }}
+        >
+          Guardar Asistencias
+        </Button>
+      </Paper>
+    </>
   );
+  
 };
 
 export default PanelRegistroAsistencia;

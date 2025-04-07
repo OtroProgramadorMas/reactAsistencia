@@ -5,7 +5,7 @@ import PanelInfo from "../../components/instructor/panelRegistroAsistencia";
 import Navbar from "../../components/shared/navbar";
 
 const InstructorHomePage = () => {
-  const [selectedView, setSelectedView] = useState<"principal" | "info">("principal");
+  const [selectedView, setSelectedView] = useState<"principal" | "fichas">("principal");
   const [selectedValue, setSelectedValue] = useState<string | undefined>(undefined);
   const [dynamicOptions, setDynamicOptions] = useState<{ id: string; label: string }[]>([]);
   
@@ -21,7 +21,7 @@ const idFuncionario = localStorage.getItem("id");
       }
     
       try {
-        const response = await fetch(`http://localhost:8000/fichas/${idFuncionario}`, {
+        const response = await fetch(`http://localhost:8000/ficha_func/${idFuncionario}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -51,14 +51,14 @@ const idFuncionario = localStorage.getItem("id");
     fetchFichas();
   }, [idFuncionario, token]);
 
-  const handleSelect = (component: "principal" | "info", value?: string) => {
+  const handleSelect = (component: "principal" | "fichas", value?: string) => {
     setSelectedView(component);
     setSelectedValue(value);
   };
 
   const renderContent = () => {
     if (selectedView === "principal") return <PanelPrincipal />;
-    if (selectedView === "info" && selectedValue) return <PanelInfo value={selectedValue} />;
+    if (selectedView === "fichas" && selectedValue) return <PanelInfo value={selectedValue} />;
     return <div>Selecciona una opción</div>;
   };
 

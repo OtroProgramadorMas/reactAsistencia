@@ -9,9 +9,10 @@ import {
 } from "@mui/material";
 
 type Option = { id: string; label: string };
+
 type SidebarProps = {
   dynamicOptions: Option[];
-  onSelect: (component: string, value?: string) => void;
+  onSelect: (component: "principal" | "fichas", value?: string) => void;
 };
 
 const drawerWidth = 240;
@@ -29,7 +30,6 @@ const Sidebar = ({ dynamicOptions, onSelect }: SidebarProps) => {
         },
       }}
     >
-      {/* Esto alinea el sidebar con el AppBar */}
       <Toolbar />
       <Divider />
       <List>
@@ -38,7 +38,7 @@ const Sidebar = ({ dynamicOptions, onSelect }: SidebarProps) => {
         </ListItemButton>
         <Divider />
         {dynamicOptions.map((opt) => (
-          <ListItemButton key={opt.id} onClick={() => onSelect("info", opt.id)}>
+          <ListItemButton key={opt.id} onClick={() => onSelect("fichas", opt.id)}>
             <ListItemText primary={opt.label} />
           </ListItemButton>
         ))}
