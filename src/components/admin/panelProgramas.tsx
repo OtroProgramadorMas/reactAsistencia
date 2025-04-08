@@ -74,6 +74,242 @@ const ProgramasPanel: React.FC = () => {
     });
   };
 
+  const handleGuardarPrograma = async () => {
+    const token = localStorage.getItem("token");
+
+    try {
+      const res = await fetch("http://localhost:8000/programas", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(nuevoPrograma),
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        fetchProgramas(); // recarga tabla
+        handleCloseDialog(); // cierra formulario
+      } else {
+        alert("Error al guardar el programa");
+      }
+    } catch (err) {
+      console.error("Error al guardar programa:", err);
+      alert("Error al conectar con el servidor.");
+    }
+  };
+
+  useEffect(() => {
+    fetchProgramas();
+  }, []);
+
+  const handleAgregarFicha = (programa: Programa) => {
+    console.log("Agregar ficha para programa:", programa);
+    // Aquí puedes abrir otro formulario o redirigir
+  };
+
+  const handleEditar = (programa: Programa) => {
+    console.log("Editar programa:", programa);
+    // Aquí puedes rellenar el formulario con los datos actuales
+    setNuevoPrograma({
+      codigo_programa: programa.codigo_programa,
+      nombre_programa: programa.nombre_programa,
+    });
+    setOpenDialog(true);
+  };
+
+  const handleEliminar = async (idprograma: number) => {
+    const token = localStorage.getItem("token");
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este programa?")) return;
+
+    try {
+      const res = await fetch(`http://localhost:8000/programas/${idprograma}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        fetchProgramas();
+      } else {
+        alert("No se pudo eliminar el programa.");
+      }
+    } catch (error) {
+      console.error("Error al eliminar programa:", error);
+    }
+  };
+
+  const columns: GridColDef[] = [
+    { field: "idprograma", headerName: "ID", width: 100 },
+    { field: "codigo_programa", headerName: "Código", width: 150 },
+    { field: "nombre_programa", headerName: "Nombre", width: 300 },
+    {
+      field: "acciones",
+      headerName: "Acciones",
+      width: 300,
+      renderCell: (params) => (
+        <Box display="flex" gap={1}>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleAgregarFicha(params.row)}
+          >
+            Ficha
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => handleEditar(params.row)}
+          >
+            Editar
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            onClick={() => handleEliminar(params.row.idprograma)}
+          >
+            Eliminar
+          </Button>
+        </Box>
+      ),
+    },
+  ];
+
+  return (
+    <Box sx={{ p: 4 }}>
+      <Box display="flex" justifyContent="space-between" mb={2}>
+        <Typography variant="h5">Programas registrados</Typography>
+        <Button variant="contained" onClick={handleOpenDialog}>
+          Agregar programa
+        </Button>
+      </Box>
+
+      {mensaje && (
+        <Typography color="error" mb={2}>
+          {mensaje}
+        </Typography>
+      )}
+
+      <DinamicTable
+        rows={programas}
+        columns={columns}
+        pagination={{ page: 0, pageSize: 8 }}
+      />
+
+      <Dialog open={openDialog} onClose={handleCloseDialog}>
+        <DialogTitle>Agregar / Editar programa</DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="Código del programa"
+            name="codigo_programa"
+            fullWidth
+            value={nuevoPrograma.codigo_programa}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            label="Nombre del programa"
+            name="nombre_programa"
+            fullWidth
+            value={nuevoPrograma.nombre_programa}
+            onChange={handleChange}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancelar</Button>
+          <Button onClick={handleGuardarPrograma} variant="contained">
+            Guardar
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+export default ProgramasPanel;
+
+/*
+import React, { useEffect, useState } from "react";
+import DinamicTable from "../shared/dataTable";
+import {
+  Box,
+  Typography,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+} from "@mui/material";
+import { GridColDef } from "@mui/x-data-grid";
+
+// Definimos el tipo del programa
+interface Programa {
+  idprograma: number;
+  codigo_programa: string;
+  nombre_programa: string;
+  id?: number;
+}
+
+const ProgramasPanel: React.FC = () => {
+  const [programas, setProgramas] = useState<Programa[]>([]);
+  const [mensaje, setMensaje] = useState("");
+  const [openDialog, setOpenDialog] = useState(false);
+  const [nuevoPrograma, setNuevoPrograma] = useState({
+    codigo_programa: "",
+    nombre_programa: "",
+  });
+
+  const fetchProgramas = async () => {
+    const token = localStorage.getItem("token");
+
+    try {
+      const res = await fetch("http://localhost:8000/programas", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      console.log("Respuesta del servidor:", data);
+
+      if (
+        data.success &&
+        data.programas?.success &&
+        Array.isArray(data.programas.data)
+      ) {
+        const dataConIds = data.programas.data.map((p: Programa) => ({
+          ...p,
+          id: p.idprograma,
+        }));
+        setProgramas(dataConIds);
+      } else {
+        setMensaje("No se pudieron cargar los programas.");
+      }
+    } catch (err) {
+      console.error("Error en fetchProgramas:", err);
+      setMensaje("Error al conectar con el servidor.");
+    }
+  };
+
+  const handleOpenDialog = () => setOpenDialog(true);
+  const handleCloseDialog = () => {
+    setNuevoPrograma({ codigo_programa: "", nombre_programa: "" });
+    setOpenDialog(false);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNuevoPrograma({
+      ...nuevoPrograma,
+      [e.target.name]: e.target.value,
+    });
+  };
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -168,7 +404,7 @@ const ProgramasPanel: React.FC = () => {
 };
 
 export default ProgramasPanel;
-
+*/
 
 
 /*import React, { useEffect, useState } from "react";
