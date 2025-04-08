@@ -25,7 +25,7 @@ import {
   Email as EmailIcon,
   Phone as PhoneIcon
 } from '@mui/icons-material';
-import Navbar from '../components/shared/navbar';
+import Navbar from '../../components/shared/navbar';
 
 interface AprendizData {
   idAprendiz: number;

@@ -49,7 +49,7 @@ const Navbar: React.FC<NavbarProps> = ({ userType, userName }) => {
   };
 
   return (
-    <AppBar position="static" sx={{ mb: 4 }}>
+    <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
       <Toolbar>
         {/* Logo del proyecto - puedes reemplazar con tu imagen */}
         <Typography

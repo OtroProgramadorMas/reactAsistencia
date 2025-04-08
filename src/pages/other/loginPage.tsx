@@ -1,13 +1,12 @@
 // src/pages/LoginPage.tsx
 import React, { useState } from 'react';
 import { Container, Typography, Box, Modal, Paper, Fade } from '@mui/material';
-import LoginAprendiz from '../components/LoginAprendiz';
-import LoginFuncionario from '../components/LoginFuncionario';
+import LoginAprendiz from '../../components/LoginAprendiz';
+import LoginFuncionario from '../../components/LoginFuncionario';
 
-
-import imgAprendiz from '../assets/loginLogos/aprendiz.avif';
-import imgInstructor from '../assets/loginLogos/instructor.jpg';
-import imgBackground from '../assets/loginLogos/fondoSena.jpeg';
+import imgAprendiz from '../../assets/loginLogos/aprendiz.avif';
+import imgInstructor from '../../assets/loginLogos/instructor.jpg';
+import imgBackground from '../../assets/loginLogos/fondoSena.jpeg';
 
 const LoginPage = () => {
   const [openAprendiz, setOpenAprendiz] = useState(false);
