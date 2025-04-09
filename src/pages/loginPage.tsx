@@ -1,9 +1,8 @@
-// src/pages/LoginPage.tsx
 import React, { useState } from 'react';
 import { Container, Typography, Box, Modal, Paper, Fade } from '@mui/material';
 import LoginAprendiz from '../components/LoginAprendiz';
 import LoginFuncionario from '../components/LoginFuncionario';
-
+import RecuperarPassword from '../components/RecuperarPassword';
 
 import imgAprendiz from '../assets/loginLogos/aprendiz.avif';
 import imgInstructor from '../assets/loginLogos/instructor.jpg';
@@ -12,12 +11,16 @@ import imgBackground from '../assets/loginLogos/fondoSena.jpeg';
 const LoginPage = () => {
   const [openAprendiz, setOpenAprendiz] = useState(false);
   const [openFuncionario, setOpenFuncionario] = useState(false);
+  const [openRecuperarPassword, setOpenRecuperarPassword] = useState(false);
 
   const handleOpenAprendiz = () => setOpenAprendiz(true);
   const handleCloseAprendiz = () => setOpenAprendiz(false);
 
   const handleOpenFuncionario = () => setOpenFuncionario(true);
   const handleCloseFuncionario = () => setOpenFuncionario(false);
+
+  const handleOpenRecuperarPassword = () => setOpenRecuperarPassword(true);
+  const handleCloseRecuperarPassword = () => setOpenRecuperarPassword(false);
 
   return (
     <Box
@@ -144,7 +147,7 @@ const LoginPage = () => {
               >
                 <Box
                   component="img"
-                  src={imgAprendiz} // Ahora usa la variable importada
+                  src={imgAprendiz}
                   alt="Iniciar Sesión como Aprendiz"
                   sx={{
                     width: '100%',
@@ -211,7 +214,7 @@ const LoginPage = () => {
               >
                 <Box
                   component="img"
-                  src={imgInstructor} // Ahora usa la variable importada
+                  src={imgInstructor}
                   alt="Iniciar Sesión como Funcionario"
                   sx={{
                     width: '100%',
@@ -251,6 +254,28 @@ const LoginPage = () => {
                   </Typography>
                 </Box>
               </Paper>
+            </Box>
+
+            {/* Botón de recuperar contraseña */}
+            <Box sx={{ textAlign: 'center', mt: 4 }}>
+              <Typography
+                variant="body2"
+                component="button"
+                onClick={handleOpenRecuperarPassword}
+                sx={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#1a237e',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  fontWeight: 500,
+                  '&:hover': {
+                    color: '#b71c1c',
+                  }
+                }}
+              >
+                ¿Olvidaste tu contraseña?
+              </Typography>
             </Box>
           </Box>
         </Paper>
@@ -299,6 +324,30 @@ const LoginPage = () => {
               borderRadius: 2
             }}>
               <LoginFuncionario onClose={handleCloseFuncionario} />
+            </Box>
+          </Fade>
+        </Modal>
+
+        {/* Modal para Recuperar Contraseña */}
+        <Modal
+          open={openRecuperarPassword}
+          onClose={handleCloseRecuperarPassword}
+          closeAfterTransition
+        >
+          <Fade in={openRecuperarPassword}>
+            <Box sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              bgcolor: 'background.paper',
+              boxShadow: 24,
+              p: 4,
+              width: { xs: '90%', sm: 400 },
+              maxWidth: '100%',
+              borderRadius: 2
+            }}>
+              <RecuperarPassword onClose={handleCloseRecuperarPassword} />
             </Box>
           </Fade>
         </Modal>
