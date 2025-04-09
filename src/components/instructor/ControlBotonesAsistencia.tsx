@@ -78,7 +78,7 @@ const ControlBotonesAsistencia: React.FC<ControlBotonesAsistenciaProps> = ({
       }));
 
       // Usar el nuevo endpoint para guardar asistencias masivas
-      const response = await fetch(`${BASE_URL}/asistencia/masiva`, {
+      const response = await fetch(`${BASE_URL}/asistencias/masiva`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -119,7 +119,7 @@ const ControlBotonesAsistencia: React.FC<ControlBotonesAsistenciaProps> = ({
       }));
 
       // Usar el nuevo endpoint para actualizar asistencias masivas
-      const response = await fetch(`${BASE_URL}/asistencia/masiva`, {
+      const response = await fetch(`${BASE_URL}/asistencias/masiva`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

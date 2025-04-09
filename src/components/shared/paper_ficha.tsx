@@ -9,6 +9,7 @@ interface Ficha {
   estado_ficha_idestado_ficha: number;
   idestado_ficha: number;
   estado_ficha: string;
+  nombre_programa: string;
 }
 
 interface FichaPaperProps {
@@ -61,13 +62,10 @@ const FichaPaper: React.FC<FichaPaperProps> = ({ fichaId }) => {
       ) : ficha ? (
         <>
           <Typography variant="h5" gutterBottom>
-            Ficha #{ficha.idficha}
+            Ficha #{ficha.codigo_ficha}
           </Typography>
           <Typography variant="subtitle1" gutterBottom>
-            <strong>Código ficha:</strong> {ficha.codigo_ficha}
-          </Typography>
-          <Typography variant="body1" gutterBottom>
-            <strong>Estado:</strong> {ficha.estado_ficha}
+            <strong>Programa:</strong> {ficha.nombre_programa}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             <strong>Fecha de inicio:</strong> {new Date(ficha.fecha_inicio).toLocaleDateString()}
