@@ -94,11 +94,15 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
 
   };
 
-  const handleVerAprendices = (ficha: Ficha) => {
-    // Navegar al panel de aprendices con los parámetros necesarios
-    navigate(`/admin/aprendices/${ficha.idficha}?codigo=${encodeURIComponent(ficha.codigo)}&programa=${encodeURIComponent(nombrePrograma)}`);
-  };
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+const handleVerAprendices = (ficha: Ficha) => {
+  const codigoFicha = ficha.codigo || "sin-codigo";
+  
+  console.log("Navegando a aprendices simplificado");
+  // Prueba primero solo con el ID sin query params
+  navigate(`/admin/aprendices/${ficha.idficha}`);
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleOpenDialog = (editar = false, ficha?: Ficha) => {
     if (editar && ficha) {
       setEditando(true);
