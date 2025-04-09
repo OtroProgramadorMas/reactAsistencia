@@ -3,7 +3,7 @@ import { Button, Stack, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import DinamicTable from "../shared/dataTable";
+import DinamicTable from "../../shared/dataTable";
 
 const initialAdmins = [
   { id: 1, nombre: "Juan Pérez", email: "juan@mail.com", rol: "Superadmin" },
