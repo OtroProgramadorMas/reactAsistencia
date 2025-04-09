@@ -22,7 +22,7 @@ import { useNavigate } from "react-router-dom";
 // Interfaz adaptada a la estructura real
 interface Ficha {
   idficha?: number;
-  codigo: string;
+  codigo_ficha: string;
   fecha_inicio: string;
   programa_idprograma: number;
   estado_ficha_idestado_ficha: number;
@@ -74,7 +74,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
           ...f,
           id: f.idficha || Math.random(), // Si no hay idficha, generamos un id único
           // Preparamos los datos de fecha para evitar problemas
-          fecha_inicio_formateada: f.fecha_inicio ? new Date(f.fecha_inicio).toLocaleDateString('es-ES') : 'N/A'
+          fecha_inicio_formateada: f.fecha_inicio ? new Date(f.fecha_inicio).toLocaleDateString('es-ES', { timeZone: 'UTC' }) : 'N/A'
         }));
         setFichas(fichasConIds);
       } else {
@@ -94,21 +94,23 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
 
   };
 
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const handleVerAprendices = (ficha: Ficha) => {
-  const codigoFicha = ficha.codigo || "sin-codigo";
+  const codigo_ficha = ficha.codigo_ficha || "sin-codigo";
   
   console.log("Navegando a aprendices simplificado");
   // Prueba primero solo con el ID sin query params
   navigate(`/admin/aprendices/${ficha.idficha}`);
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   const handleOpenDialog = (editar = false, ficha?: Ficha) => {
     if (editar && ficha) {
       setEditando(true);
       setFichaActual(ficha.idficha || null);
       setNuevaFicha({
-        codigo: ficha.codigo || '',
+        codigo: ficha.codigo_ficha || '',
         fecha_inicio: ficha.fecha_inicio ? ficha.fecha_inicio.split('T')[0] : '',
         programa_idprograma: programaId,
         estado_ficha_idestado_ficha: ficha.estado_ficha_idestado_ficha || 1
@@ -234,7 +236,7 @@ const handleVerAprendices = (ficha: Ficha) => {
   // Definimos las columnas sin usar valueFormatter para evitar errores
   const columns: GridColDef[] = [
     { field: "idficha", headerName: "ID", width: 80 },
-    { field: "codigo", headerName: "Código de Ficha", width: 150 },
+    { field: "codigo_ficha", headerName: "Código de Ficha", width: 150 },
     { 
       field: "fecha_inicio_formateada", 
       headerName: "Fecha de Inicio", 
