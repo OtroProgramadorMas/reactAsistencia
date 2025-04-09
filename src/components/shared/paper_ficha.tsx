@@ -53,7 +53,7 @@ const FichaPaper: React.FC<FichaPaperProps> = ({ fichaId }) => {
   }, [fichaId]);
 
   return (
-    <Paper elevation={4} sx={{ padding: 4, maxWidth: 600, margin: '20px auto', borderRadius: 2 }}>
+    <Paper elevation={4} sx={{ padding: 4, maxWidth: 600, borderRadius: 2 }}>
       {loading ? (
         <Box textAlign="center">
           <CircularProgress />
