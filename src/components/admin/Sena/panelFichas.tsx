@@ -22,7 +22,7 @@ import { useNavigate } from "react-router-dom";
 // Interfaz adaptada a la estructura real
 interface Ficha {
   idficha?: number;
-  codigo: string;
+  codigo_ficha: string;
   fecha_inicio: string;
   programa_idprograma: number;
   estado_ficha_idestado_ficha: number;
@@ -74,7 +74,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
           ...f,
           id: f.idficha || Math.random(), // Si no hay idficha, generamos un id único
           // Preparamos los datos de fecha para evitar problemas
-          fecha_inicio_formateada: f.fecha_inicio ? new Date(f.fecha_inicio).toLocaleDateString('es-ES') : 'N/A'
+          fecha_inicio_formateada: f.fecha_inicio ? new Date(f.fecha_inicio).toLocaleDateString('es-ES', { timeZone: 'UTC' }) : 'N/A'
         }));
         setFichas(fichasConIds);
       } else {
@@ -96,7 +96,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
 
   const handleVerAprendices = (ficha: Ficha) => {
     // Navegar al panel de aprendices con los parámetros necesarios
-    navigate(`/admin/aprendices/${ficha.idficha}?codigo=${encodeURIComponent(ficha.codigo)}&programa=${encodeURIComponent(nombrePrograma)}`);
+    navigate(`/admin/aprendices/${ficha.idficha}?codigo=${encodeURIComponent(ficha.codigo_ficha)}&programa=${encodeURIComponent(nombrePrograma)}`);
   };
 
   const handleOpenDialog = (editar = false, ficha?: Ficha) => {
@@ -104,7 +104,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
       setEditando(true);
       setFichaActual(ficha.idficha || null);
       setNuevaFicha({
-        codigo: ficha.codigo || '',
+        codigo: ficha.codigo_ficha || '',
         fecha_inicio: ficha.fecha_inicio ? ficha.fecha_inicio.split('T')[0] : '',
         programa_idprograma: programaId,
         estado_ficha_idestado_ficha: ficha.estado_ficha_idestado_ficha || 1
@@ -230,7 +230,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
   // Definimos las columnas sin usar valueFormatter para evitar errores
   const columns: GridColDef[] = [
     { field: "idficha", headerName: "ID", width: 80 },
-    { field: "codigo", headerName: "Código de Ficha", width: 150 },
+    { field: "codigo_ficha", headerName: "Código de Ficha", width: 150 },
     { 
       field: "fecha_inicio_formateada", 
       headerName: "Fecha de Inicio", 
