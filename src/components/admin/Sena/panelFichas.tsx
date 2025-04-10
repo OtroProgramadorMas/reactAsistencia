@@ -8,16 +8,21 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Snackbar,
-  Alert,
   Paper,
-  CircularProgress
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PeopleIcon from "@mui/icons-material/People";
 import { GridColDef } from "@mui/x-data-grid";
 import DinamicTable from "../../shared/dataTable";
 import { useNavigate } from "react-router-dom";
+import CustomSnackbar from "../../shared/customSnackbar";
+import useSnackbar from "../../shared/useSnackbar";
 
 // Interfaz adaptada a la estructura real
 interface Ficha {
@@ -26,7 +31,13 @@ interface Ficha {
   fecha_inicio: string;
   programa_idprograma: number;
   estado_ficha_idestado_ficha: number;
+  nombre_estado_ficha?: string; // Agregamos el nombre del estado
   id?: number; // Para DataGrid
+}
+
+interface EstadoFicha {
+  idestado_ficha: number;
+  estado_ficha: string; // Ajustando al nombre real del campo
 }
 
 interface FichasPanelProps {
@@ -37,7 +48,9 @@ interface FichasPanelProps {
 const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma }) => {
   const navigate = useNavigate();
   const [fichas, setFichas] = useState<Ficha[]>([]);
+  const [estadosFicha, setEstadosFicha] = useState<EstadoFicha[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingEstados, setLoadingEstados] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [editando, setEditando] = useState(false);
   const [fichaActual, setFichaActual] = useState<number | null>(null);
@@ -47,11 +60,37 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
     programa_idprograma: programaId,
     estado_ficha_idestado_ficha: 1 // Valor por defecto
   });
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success" as "success" | "error" | "info" | "warning",
-  });
+  
+  // Usamos nuestro hook personalizado para el Snackbar
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
+
+  const fetchEstadosFicha = async () => {
+    const token = localStorage.getItem("token");
+    setLoadingEstados(true);
+
+    try {
+      const res = await fetch("http://localhost:8000/estados_ficha", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      
+      if (data.success && Array.isArray(data.estados)) {
+        console.log("Estados de ficha obtenidos:", data.estados);
+        setEstadosFicha(data.estados);
+      } else {
+        console.error("Error en estructura de datos:", data);
+        showSnackbar("No se pudieron cargar los estados de ficha", "error");
+      }
+    } catch (err) {
+      console.error("Error en fetchEstadosFicha:", err);
+      showSnackbar("Error al conectar con el servidor", "error");
+    } finally {
+      setLoadingEstados(false);
+    }
+  };
 
   const fetchFichas = async () => {
     if (!programaId) return;
@@ -74,26 +113,28 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
           ...f,
           id: f.idficha || Math.random(), // Si no hay idficha, generamos un id único
           // Preparamos los datos de fecha para evitar problemas
-          fecha_inicio_formateada: f.fecha_inicio ? new Date(f.fecha_inicio).toLocaleDateString('es-ES', { timeZone: 'UTC' }) : 'N/A'
+          fecha_inicio_formateada: f.fecha_inicio ? new Date(f.fecha_inicio).toLocaleDateString('es-ES', { timeZone: 'UTC' }) : 'N/A',
+          // Buscamos el nombre del estado de la ficha
+          nombre_estado_ficha: estadosFicha.find(e => e.idestado_ficha === f.estado_ficha_idestado_ficha)?.estado_ficha || 'Desconocido'
         }));
         setFichas(fichasConIds);
       } else {
-        mostrarSnackbar("No se pudieron cargar las fichas", "error");
+        showSnackbar("No se pudieron cargar las fichas", "error");
       }
     } catch (err) {
       console.error("Error en fetchFichas:", err);
-      mostrarSnackbar("Error al conectar con el servidor", "error");
+      showSnackbar("Error al conectar con el servidor", "error");
     } finally {
       setLoading(false);
     }
   };
 
   const handleVolver = () => {
-    // Volver al panel de programas
+    // Modificado: Navegar directamente a la ruta de programas en lugar de usar navigate(-1)
     navigate(-1);
-
   };
 
+<<<<<<< HEAD
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const handleVerAprendices = (ficha: Ficha) => {
@@ -105,6 +146,20 @@ const handleVerAprendices = (ficha: Ficha) => {
 
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+=======
+  const handleVerAprendices = (ficha: Ficha) => {
+    const codigoFicha = ficha.codigo_ficha || "sin-codigo";
+    const nombrePrograma =  programaId || "Programa sin nombre";
+    
+    console.log("Navegando a aprendices con datos completos");
+    navigate(`/admin/aprendices/${ficha.idficha}`, {
+      state: {
+        codigoFicha: codigoFicha,
+        nombrePrograma: nombrePrograma
+      }
+    });
+  };
+>>>>>>> 3d644b83bf87d52f728c50980de757aafa8a58ad
 
   const handleOpenDialog = (editar = false, ficha?: Ficha) => {
     if (editar && ficha) {
@@ -123,7 +178,7 @@ const handleVerAprendices = (ficha: Ficha) => {
         codigo: "",
         fecha_inicio: "",
         programa_idprograma: programaId,
-        estado_ficha_idestado_ficha: 1
+        estado_ficha_idestado_ficha: 2 // Estado "iniciar" por defecto
       });
     }
     setOpenDialog(true);
@@ -140,18 +195,10 @@ const handleVerAprendices = (ficha: Ficha) => {
     });
   };
 
-  const mostrarSnackbar = (message: string, severity: "success" | "error" | "info" | "warning") => {
-    setSnackbar({
-      open: true,
-      message,
-      severity,
-    });
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({
-      ...snackbar,
-      open: false,
+  const handleSelectChange = (e: SelectChangeEvent<number>) => {
+    setNuevaFicha({
+      ...nuevaFicha,
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -160,7 +207,7 @@ const handleVerAprendices = (ficha: Ficha) => {
 
     // Validaciones básicas
     if (!nuevaFicha.codigo.trim() || !nuevaFicha.fecha_inicio) {
-      mostrarSnackbar("Los campos código y fecha de inicio son obligatorios", "error");
+      showSnackbar("Los campos código y fecha de inicio son obligatorios", "error");
       return;
     }
 
@@ -185,21 +232,21 @@ const handleVerAprendices = (ficha: Ficha) => {
 
       const result = await res.json();
       if (result.success) {
-        mostrarSnackbar(
+        showSnackbar(
           editando ? "Ficha actualizada exitosamente" : "Ficha creada exitosamente",
           "success"
         );
         fetchFichas(); // recarga tabla
         handleCloseDialog(); // cierra formulario
       } else {
-        mostrarSnackbar(
+        showSnackbar(
           result.msg || "Error al guardar la ficha",
           "error"
         );
       }
     } catch (err) {
       console.error("Error al guardar ficha:", err);
-      mostrarSnackbar("Error al conectar con el servidor", "error");
+      showSnackbar("Error al conectar con el servidor", "error");
     }
   };
 
@@ -217,22 +264,28 @@ const handleVerAprendices = (ficha: Ficha) => {
 
       const data = await res.json();
       if (data.success) {
-        mostrarSnackbar("Ficha eliminada exitosamente", "success");
+        showSnackbar("Ficha eliminada exitosamente", "success");
         fetchFichas();
       } else {
-        mostrarSnackbar(data.msg || "No se pudo eliminar la ficha", "error");
+        showSnackbar(data.msg || "No se pudo eliminar la ficha", "error");
       }
     } catch (error) {
       console.error("Error al eliminar ficha:", error);
-      mostrarSnackbar("Error al conectar con el servidor", "error");
+      showSnackbar("Error al conectar con el servidor", "error");
     }
   };
 
   useEffect(() => {
-    if (programaId) {
+    // Primero cargamos los estados de ficha
+    fetchEstadosFicha();
+  }, []);
+
+  useEffect(() => {
+    // Una vez que tengamos los estados, cargamos las fichas
+    if (programaId && !loadingEstados) {
       fetchFichas();
     }
-  }, [programaId]);
+  }, [programaId, loadingEstados, estadosFicha]);
 
   // Definimos las columnas sin usar valueFormatter para evitar errores
   const columns: GridColDef[] = [
@@ -242,6 +295,11 @@ const handleVerAprendices = (ficha: Ficha) => {
       field: "fecha_inicio_formateada", 
       headerName: "Fecha de Inicio", 
       width: 150 
+    },
+    {
+      field: "estado_ficha",
+      headerName: "Estado de Ficha",
+      width: 150
     },
     {
       field: "acciones",
@@ -287,7 +345,7 @@ const handleVerAprendices = (ficha: Ficha) => {
           onClick={handleVolver}
           sx={{ mr: 2 }}
         >
-          Volver
+          Volver a Programas
         </Button>
       </Box>
 
@@ -307,7 +365,7 @@ const handleVerAprendices = (ficha: Ficha) => {
         </Button>
       </Box>
 
-      {loading ? (
+      {loading || loadingEstados ? (
         <Box display="flex" justifyContent="center" my={4}>
           <CircularProgress />
         </Box>
@@ -316,7 +374,6 @@ const handleVerAprendices = (ficha: Ficha) => {
           rows={fichas}
           columns={columns}
           pagination={{ page: 0, pageSize: 10 }}
-          loading={loading}
         />
       )}
 
@@ -347,6 +404,26 @@ const handleVerAprendices = (ficha: Ficha) => {
             }}
             sx={{ mb: 2 }}
           />
+          {/* Solo mostramos el select para editar, no para crear nueva ficha */}
+          {editando && (
+            <FormControl fullWidth margin="dense" sx={{ mb: 2 }}>
+              <InputLabel id="estado-ficha-label">Estado de Ficha</InputLabel>
+              <Select
+                labelId="estado-ficha-label"
+                id="estado_ficha_idestado_ficha"
+                name="estado_ficha_idestado_ficha"
+                value={nuevaFicha.estado_ficha_idestado_ficha}
+                label="Estado de Ficha"
+                onChange={handleSelectChange}
+              >
+                {estadosFicha.map((estado) => (
+                  <MenuItem key={estado.idestado_ficha} value={estado.idestado_ficha}>
+                    {estado.estado_ficha}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancelar</Button>
@@ -356,20 +433,11 @@ const handleVerAprendices = (ficha: Ficha) => {
         </DialogActions>
       </Dialog>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={5000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert 
-          onClose={handleCloseSnackbar} 
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      {/* Usando nuestro componente CustomSnackbar */}
+      <CustomSnackbar 
+        snackbar={snackbar} 
+        handleClose={closeSnackbar} 
+      />
     </Paper>
   );
 };

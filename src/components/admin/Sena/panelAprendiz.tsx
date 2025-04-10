@@ -1,74 +1,65 @@
 import React, { useEffect, useState } from "react";
-import { 
-  Box, 
-  Typography, 
-  Button, 
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Paper,
+  Typography,
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  Snackbar,
-  Alert,
-  Paper,
-  CircularProgress,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  Grid
+  DialogContentText,
+  DialogActions
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { GridColDef } from "@mui/x-data-grid";
-import DinamicTable from "../../shared/dataTable";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { useNavigate } from "react-router-dom";
+import DinamicTable from "../../shared/dataTable";
+import CustomSnackbar from "../../shared/customSnackbar";
+import useSnackbar from "../../shared/useSnackbar";
+import FormularioAprendiz from "./FormularioAprendiz ";
 
-// Interfaz para el aprendiz
+// Interfaz del aprendiz, adaptada según el modelo
 interface Aprendiz {
-  idaprendiz?: number;
-  nombre: string;
-  apellido: string;
-  tipo_documento: string;
-  numero_documento: string;
-  correo: string;
-  telefono: string;
+  idaprendiz: number | null;
+  documento_aprendiz: string;
+  nombres_aprendiz: string;
+  apellidos_aprendiz: string;
+  telefono_aprendiz: string;
+  email_aprendiz: string;
+  password_aprendiz: string;
   ficha_idficha: number;
-  id?: number; // Para DataGrid
+  estado_aprendiz_idestado_aprendiz: number;
+  tipo_documento_idtipo_documento: number;
+  nombre_estado_aprendiz?: string;
+  tipo_documento?: string;
+  id?: number; // para DataGrid
 }
 
-interface PanelAprendizProps {
-  fichaId: string | null;
+interface AprendizPanelProps {
+  fichaId: string;
   codigoFicha: string;
   nombrePrograma: string;
 }
 
-const PanelAprendiz: React.FC<PanelAprendizProps> = ({ fichaId, codigoFicha, nombrePrograma }) => {
+const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nombrePrograma }) => {
   const navigate = useNavigate();
   const [aprendices, setAprendices] = useState<Aprendiz[]>([]);
   const [loading, setLoading] = useState(true);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [editando, setEditando] = useState(false);
-  const [aprendizActual, setAprendizActual] = useState<number | null>(null);
-  const [nuevoAprendiz, setNuevoAprendiz] = useState({
-    nombre: "",
-    apellido: "",
-    tipo_documento: "CC",
-    numero_documento: "",
-    correo: "",
-    telefono: "",
-    ficha_idficha: fichaId
-  });
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success" as "success" | "error" | "info" | "warning",
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
+  const [openFormulario, setOpenFormulario] = useState(false);
+  const [aprendizSeleccionado, setAprendizSeleccionado] = useState<Aprendiz | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{open: boolean, id: number | null}>({
+    open: false, 
+    id: null
   });
 
   const [archivoExcel, setArchivoExcel] = useState<File | null>(null);
 
   const fetchAprendices = async () => {
-    if (!fichaId) return;
-    
     const token = localStorage.getItem("token");
     setLoading(true);
 
@@ -80,110 +71,53 @@ const PanelAprendiz: React.FC<PanelAprendizProps> = ({ fichaId, codigoFicha, nom
       });
 
       const data = await res.json();
-      
+
       if (data.success && Array.isArray(data.aprendices)) {
-        // Procesamos los datos para asegurar que cada aprendiz tenga un id
-        const aprendicesConIds = data.aprendices.map((a: any) => ({
+        const aprendicesConId = data.aprendices.map((a: any) => ({
           ...a,
-          id: a.idaprendiz || Math.random(), // Si no hay idaprendiz, generamos un id único
-          nombre_completo: `${a.nombre} ${a.apellido}`
+          id: a.idaprendiz // Asignamos el ID para DataGrid
         }));
-        setAprendices(aprendicesConIds);
+        setAprendices(aprendicesConId);
       } else {
-        mostrarSnackbar("No se pudieron cargar los aprendices", "error");
+        showSnackbar("No se pudieron cargar los aprendices", "error");
       }
     } catch (err) {
-      console.error("Error en fetchAprendices:", err);
-      mostrarSnackbar("Error al conectar con el servidor", "error");
+      console.error("Error al obtener aprendices:", err);
+      showSnackbar("Error al conectar con el servidor", "error");
     } finally {
       setLoading(false);
     }
   };
 
   const handleVolver = () => {
-    // Volver a la página anterior
     navigate(-1);
   };
 
-  const handleOpenDialog = (editar = false, aprendiz?: Aprendiz) => {
-    if (editar && aprendiz) {
-      setEditando(true);
-      setAprendizActual(aprendiz.idaprendiz || null);
-      setNuevoAprendiz({
-        nombre: aprendiz.nombre || '',
-        apellido: aprendiz.apellido || '',
-        tipo_documento: aprendiz.tipo_documento || 'CC',
-        numero_documento: aprendiz.numero_documento || '',
-        correo: aprendiz.correo || '',
-        telefono: aprendiz.telefono || '',
-        ficha_idficha: fichaId
-      });
+  const handleAbrirFormulario = (aprendiz?: Aprendiz) => {
+    if (aprendiz) {
+      setAprendizSeleccionado(aprendiz);
     } else {
-      setEditando(false);
-      setAprendizActual(null);
-      setNuevoAprendiz({
-        nombre: "",
-        apellido: "",
-        tipo_documento: "CC",
-        numero_documento: "",
-        correo: "",
-        telefono: "",
-        ficha_idficha: fichaId
-      });
+      setAprendizSeleccionado(null);
     }
-    setOpenDialog(true);
+    setOpenFormulario(true);
   };
 
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
+  const handleCerrarFormulario = () => {
+    setOpenFormulario(false);
+    setAprendizSeleccionado(null);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
-    const name = e.target.name as string;
-    const value = e.target.value as string;
+  const handleEliminarAprendiz = (id: number) => {
+    setConfirmDelete({ open: true, id });
+  };
+
+  const confirmarEliminacion = async () => {
+    if (!confirmDelete.id) return;
     
-    setNuevoAprendiz({
-      ...nuevoAprendiz,
-      [name]: value,
-    });
-  };
-
-  const mostrarSnackbar = (message: string, severity: "success" | "error" | "info" | "warning") => {
-    setSnackbar({
-      open: true,
-      message,
-      severity,
-    });
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({
-      ...snackbar,
-      open: false,
-    });
-  };
-
-  const validateEmail = (email: string) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-  };
-
-  const handleGuardarAprendiz = async () => {
     const token = localStorage.getItem("token");
-
-    // Validaciones básicas
-    if (!nuevoAprendiz.nombre.trim() || !nuevoAprendiz.apellido.trim() || 
-        !nuevoAprendiz.numero_documento.trim()) {
-      mostrarSnackbar("Los campos nombre, apellido y documento son obligatorios", "error");
-      return;
-    }
-
-    if (nuevoAprendiz.correo && !validateEmail(nuevoAprendiz.correo)) {
-      mostrarSnackbar("El formato del correo electrónico no es válido", "error");
-      return;
-    }
-
+    
     try {
+<<<<<<< HEAD
       let url = "http://localhost:8000/aprendices";
       let method = "POST";
 
@@ -229,6 +163,9 @@ const PanelAprendiz: React.FC<PanelAprendizProps> = ({ fichaId, codigoFicha, nom
 
     try {
       const res = await fetch(`http://localhost:8000/aprendices/${idaprendiz}`, {
+=======
+      const res = await fetch(`http://localhost:8000/aprendiz/${confirmDelete.id}`, {
+>>>>>>> 3d644b83bf87d52f728c50980de757aafa8a58ad
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -236,22 +173,27 @@ const PanelAprendiz: React.FC<PanelAprendizProps> = ({ fichaId, codigoFicha, nom
       });
 
       const data = await res.json();
+      
       if (data.success) {
-        mostrarSnackbar("Aprendiz eliminado exitosamente", "success");
+        showSnackbar("Aprendiz eliminado exitosamente", "success");
         fetchAprendices();
       } else {
-        mostrarSnackbar(data.msg || "No se pudo eliminar el aprendiz", "error");
+        showSnackbar(data.msg || "No se pudo eliminar el aprendiz", "error");
       }
-    } catch (error) {
-      console.error("Error al eliminar aprendiz:", error);
-      mostrarSnackbar("Error al conectar con el servidor", "error");
+    } catch (err) {
+      console.error("Error al eliminar aprendiz:", err);
+      showSnackbar("Error al conectar con el servidor", "error");
+    } finally {
+      setConfirmDelete({ open: false, id: null });
     }
   };
 
+  const handleCancelarEliminacion = () => {
+    setConfirmDelete({ open: false, id: null });
+  };
+
   useEffect(() => {
-    if (fichaId) {
-      fetchAprendices();
-    }
+    fetchAprendices();
   }, [fichaId]);
 ////////////////////////////////////////////////////////////////
   // NUEVO: Funciones para Excel
@@ -304,30 +246,34 @@ const PanelAprendiz: React.FC<PanelAprendizProps> = ({ fichaId, codigoFicha, nom
   }, [fichaId]);
 
   const columns: GridColDef[] = [
-    { field: "nombre", headerName: "Nombre", width: 150 },
-    { field: "apellido", headerName: "Apellido", width: 150 },
-    { field: "tipo_documento", headerName: "Tipo Doc.", width: 100 },
-    { field: "numero_documento", headerName: "Número Documento", width: 150 },
-    { field: "correo", headerName: "Correo", width: 200 },
-    { field: "telefono", headerName: "Teléfono", width: 120 },
+    { field: "idaprendiz", headerName: "ID", width: 70 },
+    { field: "documento_aprendiz", headerName: "Documento", width: 130 },
+    { field: "nombres_aprendiz", headerName: "Nombres", width: 150 },
+    { field: "apellidos_aprendiz", headerName: "Apellidos", width: 150 },
+    { field: "telefono_aprendiz", headerName: "Teléfono", width: 130 },
+    { field: "email_aprendiz", headerName: "Correo", width: 200 },
+    { field: "nombre_estado_aprendiz", headerName: "Estado", width: 120 },
     {
       field: "acciones",
       headerName: "Acciones",
-      width: 200,
-      renderCell: (params) => (
+      width: 150,
+      renderCell: (params: GridRenderCellParams) => (
         <Box display="flex" gap={1}>
           <Button
             variant="outlined"
             size="small"
-            onClick={() => handleOpenDialog(true, params.row)}
+            color="primary"
+            startIcon={<EditIcon />}
+            onClick={() => handleAbrirFormulario(params.row as Aprendiz)}
           >
             Editar
           </Button>
           <Button
             variant="outlined"
-            color="error"
             size="small"
-            onClick={() => handleEliminar(params.row.idaprendiz)}
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={() => handleEliminarAprendiz(params.row.idaprendiz)}
           >
             Eliminar
           </Button>
@@ -339,8 +285,8 @@ const PanelAprendiz: React.FC<PanelAprendizProps> = ({ fichaId, codigoFicha, nom
   return (
     <Paper elevation={3} sx={{ p: 3 }}>
       <Box display="flex" alignItems="center" mb={3}>
-        <Button 
-          variant="outlined" 
+        <Button
+          variant="outlined"
           startIcon={<ArrowBackIcon />}
           onClick={handleVolver}
           sx={{ mr: 2 }}
@@ -350,17 +296,15 @@ const PanelAprendiz: React.FC<PanelAprendizProps> = ({ fichaId, codigoFicha, nom
       </Box>
 
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Aprendices de la Ficha: {codigoFicha}
+        <Typography variant="h5" gutterBottom>
+          Lista de Aprendices
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Programa: {nombrePrograma}
-        </Typography>
-        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-          ID de la ficha: {fichaId}
+          Ficha: {codigoFicha} - Programa: {nombrePrograma}
         </Typography>
       </Box>
 
+<<<<<<< HEAD
       <Box display="flex" justifyContent="space-between" mb={3} alignItems="center">
         <Typography variant="h6">Aprendices registrados</Typography>
         <Box display="flex" gap={2}>
@@ -388,6 +332,17 @@ const PanelAprendiz: React.FC<PanelAprendizProps> = ({ fichaId, codigoFicha, nom
             Subir archivo
           </Button>
         </Box>
+=======
+      <Box display="flex" justifyContent="flex-end" mb={3}>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={() => handleAbrirFormulario()}
+        >
+          Agregar Aprendiz
+        </Button>
+>>>>>>> 3d644b83bf87d52f728c50980de757aafa8a58ad
       </Box>
 
       {loading ? (
@@ -399,105 +354,44 @@ const PanelAprendiz: React.FC<PanelAprendizProps> = ({ fichaId, codigoFicha, nom
           rows={aprendices}
           columns={columns}
           pagination={{ page: 0, pageSize: 10 }}
-          loading={loading}
         />
       )}
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>{editando ? "Editar aprendiz" : "Agregar nuevo aprendiz"}</DialogTitle>
+      {/* Formulario para crear/editar aprendiz */}
+      <FormularioAprendiz
+        open={openFormulario}
+        onClose={handleCerrarFormulario}
+        aprendiz={aprendizSeleccionado}
+        fichaId={fichaId}
+        onAprendizCreated={fetchAprendices}
+      />
+
+      {/* Diálogo de confirmación para eliminar */}
+      <Dialog
+        open={confirmDelete.open}
+        onClose={handleCancelarEliminacion}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          Confirmar eliminación
+        </DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Nombre"
-                name="nombre"
-                fullWidth
-                value={nuevoAprendiz.nombre}
-                onChange={handleChange}
-                variant="outlined"
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Apellido"
-                name="apellido"
-                fullWidth
-                value={nuevoAprendiz.apellido}
-                onChange={handleChange}
-                variant="outlined"
-              />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <FormControl fullWidth variant="outlined">
-                <InputLabel>Tipo de Documento</InputLabel>
-                <Select
-                  name="tipo_documento"
-                  value={nuevoAprendiz.tipo_documento}
-                  onChange={handleChange}
-                  label="Tipo de Documento"
-                >
-                  <MenuItem value="CC">Cédula de Ciudadanía</MenuItem>
-                  <MenuItem value="TI">Tarjeta de Identidad</MenuItem>
-                  <MenuItem value="CE">Cédula de Extranjería</MenuItem>
-                  <MenuItem value="PASAPORTE">Pasaporte</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={8}>
-              <TextField
-                label="Número de Documento"
-                name="numero_documento"
-                fullWidth
-                value={nuevoAprendiz.numero_documento}
-                onChange={handleChange}
-                variant="outlined"
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Correo Electrónico"
-                name="correo"
-                type="email"
-                fullWidth
-                value={nuevoAprendiz.correo}
-                onChange={handleChange}
-                variant="outlined"
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Teléfono"
-                name="telefono"
-                fullWidth
-                value={nuevoAprendiz.telefono}
-                onChange={handleChange}
-                variant="outlined"
-              />
-            </Grid>
-          </Grid>
+          <DialogContentText id="alert-dialog-description">
+            ¿Está seguro de que desea eliminar este aprendiz? Esta acción no se puede deshacer.
+          </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button onClick={handleGuardarAprendiz} variant="contained" color="primary">
-            {editando ? "Actualizar" : "Guardar"}
+          <Button onClick={handleCancelarEliminacion} color="inherit">
+            Cancelar
+          </Button>
+          <Button onClick={confirmarEliminacion} color="error" variant="contained" autoFocus>
+            Eliminar
           </Button>
         </DialogActions>
       </Dialog>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={5000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert 
-          onClose={handleCloseSnackbar} 
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      <CustomSnackbar snackbar={snackbar} handleClose={closeSnackbar} />
     </Paper>
   );
 };
