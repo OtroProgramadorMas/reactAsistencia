@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom"; // Importamos useNavigate de React Router
+import { useNavigate } from "react-router-dom";
 import DinamicTable from "../../shared/dataTable";
 import {
   Box,
@@ -10,10 +10,10 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Snackbar,
-  Alert,
 } from "@mui/material";
 import { GridColDef } from "@mui/x-data-grid";
+import CustomSnackbar from "../../shared/customSnackbar";
+import useSnackbar from "../../shared/useSnackbar";
 
 // Definimos el tipo del programa
 interface Programa {
@@ -24,7 +24,7 @@ interface Programa {
 }
 
 const ProgramasPanel: React.FC = () => {
-  const navigate = useNavigate(); // Hook para la navegación
+  const navigate = useNavigate();
   const [programas, setProgramas] = useState<Programa[]>([]);
   const [mensaje, setMensaje] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
@@ -34,11 +34,9 @@ const ProgramasPanel: React.FC = () => {
     codigo_programa: "",
     nombre_programa: "",
   });
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success" as "success" | "error" | "info" | "warning",
-  });
+  
+  // Usamos nuestro hook personalizado para el Snackbar
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
   const fetchProgramas = async () => {
     const token = localStorage.getItem("token");
@@ -54,7 +52,6 @@ const ProgramasPanel: React.FC = () => {
       console.log("Respuesta del servidor:", data);
 
       if (data.success && Array.isArray(data.programas)) {
-        // Adaptamos la respuesta al nuevo formato de la API
         const dataConIds = data.programas.map((p: Programa) => ({
           ...p,
           id: p.idprograma,
@@ -62,12 +59,12 @@ const ProgramasPanel: React.FC = () => {
         setProgramas(dataConIds);
       } else {
         setMensaje("No se pudieron cargar los programas.");
-        mostrarSnackbar("No se pudieron cargar los programas.", "error");
+        showSnackbar("No se pudieron cargar los programas.", "error");
       }
     } catch (err) {
       console.error("Error en fetchProgramas:", err);
       setMensaje("Error al conectar con el servidor.");
-      mostrarSnackbar("Error al conectar con el servidor.", "error");
+      showSnackbar("Error al conectar con el servidor.", "error");
     }
   };
 
@@ -101,27 +98,12 @@ const ProgramasPanel: React.FC = () => {
     });
   };
 
-  const mostrarSnackbar = (message: string, severity: "success" | "error" | "info" | "warning") => {
-    setSnackbar({
-      open: true,
-      message,
-      severity,
-    });
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({
-      ...snackbar,
-      open: false,
-    });
-  };
-
   const handleGuardarPrograma = async () => {
     const token = localStorage.getItem("token");
 
     // Validaciones básicas
     if (!nuevoPrograma.codigo_programa.trim() || !nuevoPrograma.nombre_programa.trim()) {
-      mostrarSnackbar("Todos los campos son obligatorios", "error");
+      showSnackbar("Todos los campos son obligatorios", "error");
       return;
     }
 
@@ -146,21 +128,21 @@ const ProgramasPanel: React.FC = () => {
 
       const result = await res.json();
       if (result.success) {
-        mostrarSnackbar(
+        showSnackbar(
           editando ? "Programa actualizado exitosamente" : "Programa creado exitosamente",
           "success"
         );
         fetchProgramas(); // recarga tabla
         handleCloseDialog(); // cierra formulario
       } else {
-        mostrarSnackbar(
+        showSnackbar(
           result.msg || "Error al guardar el programa",
           "error"
         );
       }
     } catch (err) {
       console.error("Error al guardar programa:", err);
-      mostrarSnackbar("Error al conectar con el servidor", "error");
+      showSnackbar("Error al conectar con el servidor", "error");
     }
   };
 
@@ -178,21 +160,19 @@ const ProgramasPanel: React.FC = () => {
 
       const data = await res.json();
       if (data.success) {
-        mostrarSnackbar("Programa eliminado exitosamente", "success");
+        showSnackbar("Programa eliminado exitosamente", "success");
         fetchProgramas();
       } else {
-        mostrarSnackbar(data.msg || "No se pudo eliminar el programa", "error");
+        showSnackbar(data.msg || "No se pudo eliminar el programa", "error");
       }
     } catch (error) {
       console.error("Error al eliminar programa:", error);
-      mostrarSnackbar("Error al conectar con el servidor", "error");
+      showSnackbar("Error al conectar con el servidor", "error");
     }
   };
 
-  // Modificamos la función para usar navigate en lugar de window.location.href
   const handleAgregarFicha = (programa: Programa) => {
     console.log("Agregar ficha para programa:", programa);
-    // Navegar al panel de fichas con los parámetros del programa usando React Router
     navigate(`/admin/fichas/${programa.idprograma}?nombre=${encodeURIComponent(programa.nombre_programa)}&codigo=${encodeURIComponent(programa.codigo_programa)}`);
   };
 
@@ -286,20 +266,11 @@ const ProgramasPanel: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={5000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert 
-          onClose={handleCloseSnackbar} 
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      {/* Nuestro componente Snackbar reutilizable */}
+      <CustomSnackbar 
+        snackbar={snackbar} 
+        handleClose={closeSnackbar} 
+      />
     </Box>
   );
 };
