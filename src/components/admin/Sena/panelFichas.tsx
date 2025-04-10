@@ -101,7 +101,8 @@ const handleVerAprendices = (ficha: Ficha) => {
   
   console.log("Navegando a aprendices simplificado");
   // Prueba primero solo con el ID sin query params
-  navigate(`/admin/aprendices/${ficha.idficha}`);
+  navigate(`/admin/aprendices/${ficha.idficha}?codigo=${codigo_ficha}&programa=${nombrePrograma}`);
+
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -64,6 +64,8 @@ const PanelAprendiz: React.FC<PanelAprendizProps> = ({ fichaId, codigoFicha, nom
     severity: "success" as "success" | "error" | "info" | "warning",
   });
 
+  const [archivoExcel, setArchivoExcel] = useState<File | null>(null);
+
   const fetchAprendices = async () => {
     if (!fichaId) return;
     
@@ -219,6 +221,7 @@ const PanelAprendiz: React.FC<PanelAprendizProps> = ({ fichaId, codigoFicha, nom
       mostrarSnackbar("Error al conectar con el servidor", "error");
     }
   };
+///////////////////////////////////
 
   const handleEliminar = async (idaprendiz: number) => {
     const token = localStorage.getItem("token");
@@ -245,6 +248,55 @@ const PanelAprendiz: React.FC<PanelAprendizProps> = ({ fichaId, codigoFicha, nom
     }
   };
 
+  useEffect(() => {
+    if (fichaId) {
+      fetchAprendices();
+    }
+  }, [fichaId]);
+////////////////////////////////////////////////////////////////
+  // NUEVO: Funciones para Excel
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setArchivoExcel(file);
+    }
+  };
+
+  const handleUploadExcel = async () => {
+    if (!archivoExcel) {
+      mostrarSnackbar("Por favor selecciona un archivo Excel", "warning");
+      return;
+    }
+  
+    const formData = new FormData();
+    formData.append("excel", archivoExcel);
+  
+    const token = localStorage.getItem("token"); // Asegúrate de que esté guardado correctamente
+  
+    try {
+      const res = await fetch("http://localhost:8000/upload-excel", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`, // ← Aquí vuelve el token
+        },
+        body: formData,
+      });
+  
+      const result = await res.json();
+      if (res.ok) {
+        mostrarSnackbar("Excel cargado correctamente", "success");
+        fetchAprendices();
+        setArchivoExcel(null); // limpia
+      } else {
+        mostrarSnackbar(result.message || "Error al cargar Excel", "error");
+      }
+    } catch (err) {
+      console.error("Error al subir Excel:", err);
+      mostrarSnackbar("Error al conectar con el servidor", "error");
+    }
+  };
+  
+  
   useEffect(() => {
     if (fichaId) {
       fetchAprendices();
@@ -309,11 +361,33 @@ const PanelAprendiz: React.FC<PanelAprendizProps> = ({ fichaId, codigoFicha, nom
         </Typography>
       </Box>
 
-      <Box display="flex" justifyContent="space-between" mb={3}>
+      <Box display="flex" justifyContent="space-between" mb={3} alignItems="center">
         <Typography variant="h6">Aprendices registrados</Typography>
-        <Button variant="contained" onClick={() => handleOpenDialog()}>
-          Agregar nuevo aprendiz
-        </Button>
+        <Box display="flex" gap={2}>
+          <Button variant="contained" onClick={() => handleOpenDialog()}>
+            Agregar nuevo aprendiz
+          </Button>
+          <Button
+            variant="contained"
+            component="label"
+            color="secondary"
+          >
+            Cargar Excel
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              hidden
+              onChange={handleFileChange}
+            />
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={handleUploadExcel}
+            disabled={!archivoExcel}
+          >
+            Subir archivo
+          </Button>
+        </Box>
       </Box>
 
       {loading ? (
