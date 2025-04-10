@@ -30,32 +30,43 @@ interface TipoDocumento {
   idtipo_documento: number;
   tipo_documento: string;
 }
+
 interface AdminData {
+  id?: number;
   nombre: string;
   apellido: string;
-  idtipo_documento: number;
+  idtipo_documento: number | string;
+  tipoDocumento?: string;
   documento: string;
   telefono: string;
   email: string;
   password?: string;
   rol: string;
-  imagen?: any;
+  imagen?: string | null;
 }
-const AdminPanel = () => {
-  const [admins, setAdmins] = useState([]);
-  const [openModal, setOpenModal] = useState(false);
-  const [openEditModal, setOpenEditModal] = useState(false);
-  const [openDeleteModal, setOpenDeleteModal] = useState(false);
+
+// Tipo de alerta
+interface AlertState {
+  open: boolean;
+  message: string;
+  severity: "success" | "info" | "warning" | "error";
+}
+
+const AdminPanel: React.FC = () => {
+  const [admins, setAdmins] = useState<AdminData[]>([]);
+  const [openModal, setOpenModal] = useState<boolean>(false);
+  const [openEditModal, setOpenEditModal] = useState<boolean>(false);
+  const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
   const [tiposDocumento, setTiposDocumento] = useState<TipoDocumento[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [tableLoading, setTableLoading] = useState(true);
-  const [alert, setAlert] = useState({
+  const [loading, setLoading] = useState<boolean>(false);
+  const [tableLoading, setTableLoading] = useState<boolean>(true);
+  const [alert, setAlert] = useState<AlertState>({
     open: false,
     message: "",
     severity: "success"
   });
 
-  const [newAdmin, setNewAdmin] = useState({
+  const [newAdmin, setNewAdmin] = useState<AdminData>({
     nombre: "",
     apellido: "",
     idtipo_documento: "",
@@ -67,19 +78,17 @@ const AdminPanel = () => {
     imagen: null
   });
 
-
-  const [editingAdmin, setEditingAdmin] = useState(null);
-  const [deletingAdmin, setDeletingAdmin] = useState(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState("");
+  const [editingAdmin, setEditingAdmin] = useState<AdminData | null>(null);
+  const [deletingAdmin, setDeletingAdmin] = useState<AdminData | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
 
   // Obtener token de autenticación
-  const getToken = () => localStorage.getItem('token');
+  const getToken = (): string | null => localStorage.getItem('token');
 
   // Opciones para fetch con headers de autenticación
-  const getOptions = (method = 'GET', body = null) => {
-    const baseOptions = {
+  const getOptions = (method = 'GET', body: Record<string, unknown> | null = null): RequestInit => {
+    const baseOptions: RequestInit = {
       method,
       headers: {
         'Authorization': `Bearer ${getToken()}`,
@@ -87,7 +96,7 @@ const AdminPanel = () => {
       }
     };
     
-    const options = body 
+    const options: RequestInit = body 
       ? { ...baseOptions, body: JSON.stringify(body) }
       : baseOptions;
     
@@ -95,7 +104,7 @@ const AdminPanel = () => {
   };
 
   // Función para mostrar notificaciones
-  const showAlert = (message: string, severity = "success") => {
+  const showAlert = (message: string, severity: "success" | "info" | "warning" | "error" = "success"): void => {
     setAlert({
       open: true,
       message,
@@ -103,7 +112,7 @@ const AdminPanel = () => {
     });
   };
 
-  const handleCloseAlert = () => {
+  const handleCloseAlert = (): void => {
     setAlert({
       ...alert,
       open: false
@@ -111,7 +120,7 @@ const AdminPanel = () => {
   };
 
   // Cargar tipos de documento desde la API
-  const fetchTiposDocumento = async () => {
+  const fetchTiposDocumento = async (): Promise<void> => {
     try {
       const response = await fetch(`${API_URL}/tipoDocumento`, getOptions());
       
@@ -145,7 +154,7 @@ const AdminPanel = () => {
   };
 
   // Cargar administradores desde la API
-  const fetchAdministradores = async () => {
+  const fetchAdministradores = async (): Promise<void> => {
     setTableLoading(true);
     try {
       const response = await fetch(`${API_URL}/administradores`, getOptions());
@@ -157,7 +166,8 @@ const AdminPanel = () => {
       const data = await response.json();
       if (data.success && data.administradores) {
         // Mapear los datos del backend al formato esperado por la tabla
-        const adminsFormateados = data.administradores.map((admin: { id_administrador: unknown; nombre: unknown; apellido: unknown; tipo_documento: unknown; idtipo_documento: unknown; documento: unknown; telefono: unknown; email: unknown; rol: unknown; imagen: unknown; }) => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const adminsFormateados = data.administradores.map((admin: any) => ({
           id: admin.id_administrador,
           nombre: admin.nombre,
           apellido: admin.apellido,
@@ -177,8 +187,6 @@ const AdminPanel = () => {
     } catch (error) {
       console.error("Error al cargar administradores:", error);
       showAlert("Error al cargar administradores", "error");
-      
-      
     } finally {
       setTableLoading(false);
     }
@@ -187,11 +195,10 @@ const AdminPanel = () => {
   useEffect(() => {
     fetchTiposDocumento();
     fetchAdministradores();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);  
 
   // Manejo de modales
-  const handleOpenModal = () => {
+  const handleOpenModal = (): void => {
     setOpenModal(true);
     setNewAdmin({
       nombre: "",
@@ -208,43 +215,49 @@ const AdminPanel = () => {
     setImagePreview("");
   };
 
-  const handleCloseModal = () => {
+  const handleCloseModal = (): void => {
     setOpenModal(false);
   };
 
-  const handleOpenEditModal = (admin) => {
+  const handleOpenEditModal = (admin: AdminData): void => {
     setEditingAdmin({...admin});
     setImagePreview(admin.imagen || "");
     setOpenEditModal(true);
   };
 
-  const handleCloseEditModal = () => {
+  const handleCloseEditModal = (): void => {
     setOpenEditModal(false);
     setEditingAdmin(null);
     setImagePreview("");
   };
 
-  const handleOpenDeleteModal = (admin) => {
+  const handleOpenDeleteModal = (admin: AdminData): void => {
     setDeletingAdmin(admin);
     setOpenDeleteModal(true);
   };
 
-  const handleCloseDeleteModal = () => {
+  const handleCloseDeleteModal = (): void => {
     setOpenDeleteModal(false);
     setDeletingAdmin(null);
   };
 
   // Manejo de cambios en formularios
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>): void => {
+    const name = e.target.name as keyof AdminData;
+    const value = e.target.value;
+    
     setNewAdmin({
       ...newAdmin,
       [name]: value
     });
   };
 
-  const handleEditInputChange = (e) => {
-    const { name, value } = e.target;
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>): void => {
+    if (!editingAdmin) return;
+    
+    const name = e.target.name as keyof AdminData;
+    const value = e.target.value;
+    
     setEditingAdmin({
       ...editingAdmin,
       [name]: value
@@ -252,31 +265,37 @@ const AdminPanel = () => {
   };
 
   // Manejo de subida de imágenes
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const files = e.target.files;
+    if (files && files[0]) {
+      const file = files[0];
       setSelectedImage(file);
       const reader = new FileReader();
       reader.onload = () => {
-        setImagePreview(reader.result);
+        const result = reader.result as string;
+        setImagePreview(result);
         setNewAdmin({
           ...newAdmin,
-          imagen: reader.result
+          imagen: result
         });
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleEditImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
+  const handleEditImageUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    if (!editingAdmin) return;
+    
+    const files = e.target.files;
+    if (files && files[0]) {
+      const file = files[0];
       const reader = new FileReader();
       reader.onload = () => {
-        setImagePreview(reader.result);
+        const result = reader.result as string;
+        setImagePreview(result);
         setEditingAdmin({
           ...editingAdmin,
-          imagen: reader.result
+          imagen: result
         });
       };
       reader.readAsDataURL(file);
@@ -284,53 +303,64 @@ const AdminPanel = () => {
   };
 
   // CRUD Operations
-const handleAddAdmin = async () => {
-  try {
-    setLoading(true);
+  const handleAddAdmin = async (): Promise<void> => {
+    try {
+      setLoading(true);
+      
+      // Asegúrate de que idtipo_documento sea un número
+      const idTipoDocumentoNumerico = typeof newAdmin.idtipo_documento === 'string' 
+        ? parseInt(newAdmin.idtipo_documento) 
+        : newAdmin.idtipo_documento;
+        
+      // Preparar datos para envío
+      const adminData = {
+        nombre: newAdmin.nombre,
+        apellido: newAdmin.apellido,
+        idtipo_documento: idTipoDocumentoNumerico,
+        documento: newAdmin.documento,
+        telefono: newAdmin.telefono,
+        email: newAdmin.email,
+        password: newAdmin.password || "password123", // Password por defecto si no se proporciona
+        rol: "Administrador",
+        imagen: newAdmin.imagen
+      };
     
-    // Preparar datos para envío
-    const adminData = {
-      nombre: newAdmin.nombre,
-      apellido: newAdmin.apellido,
-      idtipo_documento: parseInt(newAdmin.idtipo_documento),
-      documento: newAdmin.documento,
-      telefono: newAdmin.telefono,
-      email: newAdmin.email,
-      password: newAdmin.password || "password123", // Password por defecto si no se proporciona
-      rol: "Administrador",
-      imagen: newAdmin.imagen
-    };
-    
-    const response = await fetch(`${API_URL}/administradores`, 
-      getOptions('POST', adminData)
-    );
-    
-    const result = await response.json();
-    
-    if (response.ok && result.success) {
-      showAlert("Administrador agregado con éxito");
-      fetchAdministradores(); // Recargar la lista
-      handleCloseModal();
-    } else {
-      throw new Error(result.message || "Error al crear administrador");
+      const response = await fetch(
+        `${API_URL}/administradores`, 
+        getOptions('POST', adminData as Record<string, unknown>)
+      );
+      
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        showAlert("Administrador agregado con éxito");
+        fetchAdministradores(); // Recargar la lista
+        handleCloseModal();
+      } else {
+        throw new Error(result.message || "Error al crear administrador");
+      }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Error al agregar administrador:", error);
+      showAlert(error.message || "Error al agregar administrador", "error");
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Error al agregar administrador:", error);
-    showAlert(error.message || "Error al agregar administrador", "error");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = async (): Promise<void> => {
+    if (!editingAdmin) return;
+    
     try {
       setLoading(true);
       
       // Preparar datos para envío
-      const adminData = {
+      const adminData: Record<string, unknown> = {
         nombre: editingAdmin.nombre,
         apellido: editingAdmin.apellido,
-        idtipo_documento: parseInt(editingAdmin.idtipo_documento),
+        idtipo_documento: typeof editingAdmin.idtipo_documento === 'string' 
+          ? parseInt(editingAdmin.idtipo_documento) 
+          : editingAdmin.idtipo_documento,
         documento: editingAdmin.documento,
         telefono: editingAdmin.telefono,
         email: editingAdmin.email,
@@ -356,7 +386,8 @@ const handleAddAdmin = async () => {
       } else {
         throw new Error(result.message || "Error al actualizar administrador");
       }
-    } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
       console.error("Error al actualizar administrador:", error);
       showAlert(error.message || "Error al actualizar administrador", "error");
     } finally {
@@ -364,7 +395,9 @@ const handleAddAdmin = async () => {
     }
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = async (): Promise<void> => {
+    if (!deletingAdmin) return;
+    
     try {
       setLoading(true);
       
@@ -382,7 +415,8 @@ const handleAddAdmin = async () => {
       } else {
         throw new Error(result.message || "Error al eliminar administrador");
       }
-    } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
       console.error("Error al eliminar administrador:", error);
       showAlert(error.message || "Error al eliminar administrador", "error");
     } finally {
@@ -391,20 +425,20 @@ const handleAddAdmin = async () => {
   };
 
   // Validación de formularios
-  const isFormValid = (admin) => {
-    return admin.nombre && 
-           admin.apellido && 
-           admin.idtipo_documento && 
-           admin.documento && 
-           admin.telefono && 
-           admin.email;
+  const isFormValid = (admin: AdminData): boolean => {
+    return !!admin.nombre && 
+           !!admin.apellido && 
+           !!admin.idtipo_documento && 
+           !!admin.documento && 
+           !!admin.telefono && 
+           !!admin.email;
   };
 
-  const handleEdit = (row) => {
+  const handleEdit = (row: AdminData): void => {
     handleOpenEditModal(row);
   };
 
-  const handleDelete = (row) => {
+  const handleDelete = (row: AdminData): void => {
     handleOpenDeleteModal(row);
   };
 
@@ -414,7 +448,8 @@ const handleAddAdmin = async () => {
       field: "imagen", 
       headerName: "Imagen", 
       width: 80,
-      renderCell: (params) => (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      renderCell: (params: any) => (
         <Box
           sx={{
             width: 40,

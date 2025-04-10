@@ -6,7 +6,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ onSelect }: SidebarProps) => {
-  const menuItems = ["Principal","Instructor", "Administrador", "Programa", "Varios"];
+  const menuItems = ["Principal","Instructor", "Administrador", "Programa"];
 
   return (
     <Drawer

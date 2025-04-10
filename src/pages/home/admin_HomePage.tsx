@@ -48,8 +48,6 @@ const AdminHomePage = () => {
         return <AdminPanel />;
       case "Programa":
         return <ProgramasPanel />;
-      case "Varios":
-        return <Typography variant="h4">Panel Varios</Typography>;
       default:
         return <Typography variant="h4">Seleccione una opción</Typography>;
     }
