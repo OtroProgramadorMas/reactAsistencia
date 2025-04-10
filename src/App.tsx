@@ -57,8 +57,28 @@ function App() {
             </AuthGuard>
           }
         />
+
+        {/* Rutas de administrador */}
         <Route
           path="/admin"
+          element={
+            <AuthGuard>
+              <AdministradorHomePage />
+            </AuthGuard>
+          }
+        />
+        {/* Ruta para fichas de un programa */}
+        <Route
+          path="/admin/fichas/:id"
+          element={
+            <AuthGuard>
+              <AdministradorHomePage />
+            </AuthGuard>
+          }
+        />
+        {/* Ruta para aprendices de una ficha */}
+        <Route
+          path="/admin/aprendices/:id"
           element={
             <AuthGuard>
               <AdministradorHomePage />

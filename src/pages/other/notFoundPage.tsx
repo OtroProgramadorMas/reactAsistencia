@@ -22,9 +22,9 @@ const NotFoundPage = () => {
           variant="contained"
           color="primary"
           size="large"
-          onClick={() => navigate('/')} // Redirige a la página principal
+          onClick={() => navigate(-1)} // Redirige a la página principal
         >
-          Volver al inicio
+          Volver
         </Button>
       </Box>
     </Container>
