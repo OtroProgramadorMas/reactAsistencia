@@ -34,6 +34,7 @@ const Navbar: React.FC<NavbarProps> = ({ userType, userName }) => {
   const handleLogout = () => {
     // Eliminar token del localStorage
     localStorage.removeItem('token');
+    localStorage.removeItem('id');
     localStorage.removeItem('userData');
 
     // Redirigir al login
