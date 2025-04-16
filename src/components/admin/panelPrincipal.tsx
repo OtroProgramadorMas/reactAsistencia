@@ -1,5 +1,5 @@
 import { Box, Typography, Paper } from "@mui/material";
-import FuncionarioCard from "../shared/modalInfoFuncionario";
+import FuncionarioCard from "../shared/paper_funcionario";
 
 const PanelPrincipal = () => (
   <Box

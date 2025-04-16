@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { 
-  Box, 
-  Typography, 
-  Button, 
+import {
+  Box,
+  Typography,
+  Button,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -60,7 +60,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
     programa_idprograma: programaId,
     estado_ficha_idestado_ficha: 1 // Valor por defecto
   });
-  
+
   // Usamos nuestro hook personalizado para el Snackbar
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
@@ -76,7 +76,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
       });
 
       const data = await res.json();
-      
+
       if (data.success && Array.isArray(data.estados)) {
         console.log("Estados de ficha obtenidos:", data.estados);
         setEstadosFicha(data.estados);
@@ -94,7 +94,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
 
   const fetchFichas = async () => {
     if (!programaId) return;
-    
+
     const token = localStorage.getItem("token");
     setLoading(true);
 
@@ -106,7 +106,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
       });
 
       const data = await res.json();
-      
+
       if (data.success && Array.isArray(data.fichas)) {
         // Procesamos los datos para asegurar que cada ficha tenga un id
         const fichasConIds = data.fichas.map((f: any) => ({
@@ -134,23 +134,20 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
     navigate(-1);
   };
 
-<<<<<<< HEAD
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const handleVerAprendices = (ficha: Ficha) => {
-  const codigo_ficha = ficha.codigo_ficha || "sin-codigo";
-  
-  console.log("Navegando a aprendices simplificado");
-  // Prueba primero solo con el ID sin query params
-  navigate(`/admin/aprendices/${ficha.idficha}?codigo=${codigo_ficha}&programa=${nombrePrograma}`);
+  // const handleVerAprendices = (ficha: Ficha) => {
+  //   const codigo_ficha = ficha.codigo_ficha || "sin-codigo";
 
-};
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-=======
+  //   console.log("Navegando a aprendices simplificado");
+  //   // Prueba primero solo con el ID sin query params
+  //   navigate(`/admin/aprendices/${ficha.idficha}?codigo=${codigo_ficha}&programa=${nombrePrograma}`);
+
+  // };
+
   const handleVerAprendices = (ficha: Ficha) => {
     const codigoFicha = ficha.codigo_ficha || "sin-codigo";
-    const nombrePrograma =  programaId || "Programa sin nombre";
-    
+    const nombrePrograma = programaId || "Programa sin nombre";
+
     console.log("Navegando a aprendices con datos completos");
     navigate(`/admin/aprendices/${ficha.idficha}`, {
       state: {
@@ -159,7 +156,6 @@ const handleVerAprendices = (ficha: Ficha) => {
       }
     });
   };
->>>>>>> 3d644b83bf87d52f728c50980de757aafa8a58ad
 
   const handleOpenDialog = (editar = false, ficha?: Ficha) => {
     if (editar && ficha) {
@@ -291,10 +287,10 @@ const handleVerAprendices = (ficha: Ficha) => {
   const columns: GridColDef[] = [
     { field: "idficha", headerName: "ID", width: 80 },
     { field: "codigo_ficha", headerName: "Código de Ficha", width: 150 },
-    { 
-      field: "fecha_inicio_formateada", 
-      headerName: "Fecha de Inicio", 
-      width: 150 
+    {
+      field: "fecha_inicio_formateada",
+      headerName: "Fecha de Inicio",
+      width: 150
     },
     {
       field: "estado_ficha",
@@ -339,8 +335,8 @@ const handleVerAprendices = (ficha: Ficha) => {
   return (
     <Paper elevation={3} sx={{ p: 3 }}>
       <Box display="flex" alignItems="center" mb={3}>
-        <Button 
-          variant="outlined" 
+        <Button
+          variant="outlined"
           startIcon={<ArrowBackIcon />}
           onClick={handleVolver}
           sx={{ mr: 2 }}
@@ -434,9 +430,9 @@ const handleVerAprendices = (ficha: Ficha) => {
       </Dialog>
 
       {/* Usando nuestro componente CustomSnackbar */}
-      <CustomSnackbar 
-        snackbar={snackbar} 
-        handleClose={closeSnackbar} 
+      <CustomSnackbar
+        snackbar={snackbar}
+        handleClose={closeSnackbar}
       />
     </Paper>
   );

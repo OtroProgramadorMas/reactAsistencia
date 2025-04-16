@@ -57,8 +57,6 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
     id: null
   });
 
-  const [archivoExcel, setArchivoExcel] = useState<File | null>(null);
-
   const fetchAprendices = async () => {
     const token = localStorage.getItem("token");
     setLoading(true);
@@ -117,55 +115,7 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
     const token = localStorage.getItem("token");
     
     try {
-<<<<<<< HEAD
-      let url = "http://localhost:8000/aprendices";
-      let method = "POST";
-
-      // Si estamos editando, cambiamos la URL y el método
-      if (editando && aprendizActual) {
-        url = `http://localhost:8000/aprendices/${aprendizActual}`;
-        method = "PUT";
-      }
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(nuevoAprendiz),
-      });
-
-      const result = await res.json();
-      if (result.success) {
-        mostrarSnackbar(
-          editando ? "Aprendiz actualizado exitosamente" : "Aprendiz creado exitosamente",
-          "success"
-        );
-        fetchAprendices(); // recarga tabla
-        handleCloseDialog(); // cierra formulario
-      } else {
-        mostrarSnackbar(
-          result.msg || "Error al guardar el aprendiz",
-          "error"
-        );
-      }
-    } catch (err) {
-      console.error("Error al guardar aprendiz:", err);
-      mostrarSnackbar("Error al conectar con el servidor", "error");
-    }
-  };
-///////////////////////////////////
-
-  const handleEliminar = async (idaprendiz: number) => {
-    const token = localStorage.getItem("token");
-    if (!window.confirm("¿Estás seguro de que deseas eliminar este aprendiz?")) return;
-
-    try {
-      const res = await fetch(`http://localhost:8000/aprendices/${idaprendiz}`, {
-=======
       const res = await fetch(`http://localhost:8000/aprendiz/${confirmDelete.id}`, {
->>>>>>> 3d644b83bf87d52f728c50980de757aafa8a58ad
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -194,55 +144,6 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
 
   useEffect(() => {
     fetchAprendices();
-  }, [fichaId]);
-////////////////////////////////////////////////////////////////
-  // NUEVO: Funciones para Excel
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setArchivoExcel(file);
-    }
-  };
-
-  const handleUploadExcel = async () => {
-    if (!archivoExcel) {
-      mostrarSnackbar("Por favor selecciona un archivo Excel", "warning");
-      return;
-    }
-  
-    const formData = new FormData();
-    formData.append("excel", archivoExcel);
-  
-    const token = localStorage.getItem("token"); // Asegúrate de que esté guardado correctamente
-  
-    try {
-      const res = await fetch("http://localhost:8000/upload-excel", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`, // ← Aquí vuelve el token
-        },
-        body: formData,
-      });
-  
-      const result = await res.json();
-      if (res.ok) {
-        mostrarSnackbar("Excel cargado correctamente", "success");
-        fetchAprendices();
-        setArchivoExcel(null); // limpia
-      } else {
-        mostrarSnackbar(result.message || "Error al cargar Excel", "error");
-      }
-    } catch (err) {
-      console.error("Error al subir Excel:", err);
-      mostrarSnackbar("Error al conectar con el servidor", "error");
-    }
-  };
-  
-  
-  useEffect(() => {
-    if (fichaId) {
-      fetchAprendices();
-    }
   }, [fichaId]);
 
   const columns: GridColDef[] = [
@@ -304,35 +205,6 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
         </Typography>
       </Box>
 
-<<<<<<< HEAD
-      <Box display="flex" justifyContent="space-between" mb={3} alignItems="center">
-        <Typography variant="h6">Aprendices registrados</Typography>
-        <Box display="flex" gap={2}>
-          <Button variant="contained" onClick={() => handleOpenDialog()}>
-            Agregar nuevo aprendiz
-          </Button>
-          <Button
-            variant="contained"
-            component="label"
-            color="secondary"
-          >
-            Cargar Excel
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              hidden
-              onChange={handleFileChange}
-            />
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={handleUploadExcel}
-            disabled={!archivoExcel}
-          >
-            Subir archivo
-          </Button>
-        </Box>
-=======
       <Box display="flex" justifyContent="flex-end" mb={3}>
         <Button
           variant="contained"
@@ -342,7 +214,6 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
         >
           Agregar Aprendiz
         </Button>
->>>>>>> 3d644b83bf87d52f728c50980de757aafa8a58ad
       </Box>
 
       {loading ? (

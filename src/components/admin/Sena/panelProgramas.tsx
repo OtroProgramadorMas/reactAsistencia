@@ -170,12 +170,7 @@ const ProgramasPanel: React.FC = () => {
       showSnackbar("Error al conectar con el servidor", "error");
     }
   };
-<<<<<<< HEAD
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // Modificamos la función para usar navigate en lugar de window.location.href
-=======
-
->>>>>>> 3d644b83bf87d52f728c50980de757aafa8a58ad
+  
   const handleAgregarFicha = (programa: Programa) => {
     console.log("Agregar ficha para programa:", programa);
     navigate(`/admin/fichas/${programa.idprograma}?nombre=${encodeURIComponent(programa.nombre_programa)}&codigo=${encodeURIComponent(programa.codigo_programa)}`);

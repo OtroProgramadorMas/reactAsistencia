@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AlertColor } from '@mui/material';
-import { SnackbarState } from './CustomSnackbar';
+import { SnackbarState } from './customSnackbar';
 
 /**
  * Hook personalizado para gestionar el estado y funciones de un Snackbar

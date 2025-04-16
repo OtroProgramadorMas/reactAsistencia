@@ -39,8 +39,8 @@ const FichaPaper: React.FC<FichaPaperProps> = ({ fichaId }) => {
         return res.json();
       })
       .then((data) => {
-        if (data.success && data.data) {
-          setFicha(data.data);
+        if (data.success && data.ficha) {
+          setFicha(data.ficha);
         } else {
           throw new Error('Estructura de respuesta no válida');
         }

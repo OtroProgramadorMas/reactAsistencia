@@ -47,7 +47,7 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("No se encontró token");
 
-        const response = await fetch(`http://localhost:8000/aprendiz_ficha/${value}`, {
+        const response = await fetch(`http://localhost:8000/aprendices/ficha/${value}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -79,22 +79,28 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("No se encontró token");
-
-        const response = await fetch("http://localhost:8000/tipo_asistencia", {
+    
+        const response = await fetch("http://localhost:8000/asistencia/tipos", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-
+    
         if (!response.ok) throw new Error("Error al obtener tipos");
-
+    
         const data = await response.json();
         
-        if (!Array.isArray(data)) {
+        if (!Array.isArray(data.tipos)) {
           throw new Error("Formato de datos inválido");
         }
-
-        setTiposAsistencia(data);
+    
+        // Transformar el formato de los datos para que coincidan con la estructura esperada
+        const tiposFormateados = data.tipos.map((tipo: any) => ({
+          id: tipo.idtipo_asistencia,
+          nombre: tipo.nombre_tipo_asistencia
+        }));
+    
+        setTiposAsistencia(tiposFormateados);
       } catch (err) {
         console.error("Error al obtener tipos de asistencia:", err);
         setErrorTipos(err instanceof Error ? err.message : "Error desconocido");
@@ -143,12 +149,12 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
             onChange={(e) => handleEstadoChange(id, parseInt(e.target.value))}
           >
             {tiposAsistencia.length > 0 ? (
-              tiposAsistencia.map((tipo) => (
+              tiposAsistencia.map((tipos) => (
                 <FormControlLabel
-                  key={tipo.id}
-                  value={tipo.id}
+                  key={tipos.id}
+                  value={tipos.id}
                   control={<Radio size="small" />}
-                  label={tipo.nombre}
+                  label={tipos.nombre}
                 />
               ))
             ) : (

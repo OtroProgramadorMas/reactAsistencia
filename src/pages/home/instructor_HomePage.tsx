@@ -21,7 +21,7 @@ const idFuncionario = localStorage.getItem("id");
       }
     
       try {
-        const response = await fetch(`http://localhost:8000/ficha_func/${idFuncionario}`, {
+        const response = await fetch(`http://localhost:8000/fichas_instructor/${idFuncionario}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
