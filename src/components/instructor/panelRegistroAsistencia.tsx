@@ -15,6 +15,7 @@ import {
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import SearchIcon from "@mui/icons-material/Search";
 import FichaPaper from "../../components/shared/paper_ficha";
+import ControlBotonesAsistencia from "./ControlBotonesAsistencia";
 
 type Asistencia = {
   id: number;
@@ -23,8 +24,8 @@ type Asistencia = {
 };
 
 type TipoAsistencia = {
-  id: number;
-  nombre: string;
+  idtipo_asistencia: number;
+  nombre_tipo_asistencia: string;
 };
 
 const PanelRegistroAsistencia = ({ value }: { value: string }) => {
@@ -63,6 +64,8 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
           documento: a.documento_aprendiz,
         }));
 
+        console.log(aprendicesFormateados);
+
         setAsistencias(aprendicesFormateados);
       } catch (err) {
         setError("No se pudieron cargar los aprendices");
@@ -75,11 +78,10 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
     const cargarTiposAsistencia = async () => {
       setLoadingTipos(true);
       setErrorTipos(null);
-      
+
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("No se encontró token");
-    
         const response = await fetch("http://localhost:8000/asistencia/tipos", {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -90,7 +92,7 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
     
         const data = await response.json();
         
-        if (!Array.isArray(data.tipos)) {
+        if (!data.success || !Array.isArray(data.tipos)) {
           throw new Error("Formato de datos inválido");
         }
     
@@ -151,10 +153,10 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
             {tiposAsistencia.length > 0 ? (
               tiposAsistencia.map((tipos) => (
                 <FormControlLabel
-                  key={tipos.id}
-                  value={tipos.id}
+                  key={tipos.idtipo_asistencia}
+                  value={tipos.idtipo_asistencia}
                   control={<Radio size="small" />}
-                  label={tipos.nombre}
+                  label={tipos.nombre_tipo_asistencia}
                 />
               ))
             ) : (
@@ -238,6 +240,21 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
             pagination={{ page: 0, pageSize: 10 }}
           />
         )}
+
+        {!loading && !error && (
+          <ControlBotonesAsistencia
+            fecha={fecha}
+            idAprendices={asistencias.map(a => a.id)}
+            fichaId={Number(value)}
+            estadosAsistencia={estadoTemporal}
+            onCompletado={() => {
+              // Lógica a ejecutar después de guardar/actualizar
+              // Por ejemplo, mostrar un mensaje de éxito
+            }}
+          />
+        )}
+
+
       </Paper>
     </>
   );

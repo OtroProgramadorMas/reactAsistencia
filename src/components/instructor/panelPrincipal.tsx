@@ -27,6 +27,7 @@ const PanelPrincipal = () => (
     </Paper>
 
     <FuncionarioCard />
+
   </Box>
 );
 
