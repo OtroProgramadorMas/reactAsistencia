@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Container, Typography, Box, Modal, Paper, Fade } from '@mui/material';
+import { Container, Typography, Box, Modal, Paper, Fade, Button, IconButton } from '@mui/material';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import CloseIcon from '@mui/icons-material/Close';
+import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
 import LoginAprendiz from '../../components/LoginAprendiz';
 import LoginFuncionario from '../../components/LoginFuncionario';
 import RecuperarPassword from '../../components/RecuperarPassword';
@@ -12,6 +15,8 @@ const LoginPage = () => {
   const [openAprendiz, setOpenAprendiz] = useState(false);
   const [openFuncionario, setOpenFuncionario] = useState(false);
   const [openRecuperarPassword, setOpenRecuperarPassword] = useState(false);
+  const [tutorialMode, setTutorialMode] = useState(false);
+  const [currentTutorialStep, setCurrentTutorialStep] = useState(0);
 
   const handleOpenAprendiz = () => setOpenAprendiz(true);
   const handleCloseAprendiz = () => setOpenAprendiz(false);
@@ -21,6 +26,46 @@ const LoginPage = () => {
 
   const handleOpenRecuperarPassword = () => setOpenRecuperarPassword(true);
   const handleCloseRecuperarPassword = () => setOpenRecuperarPassword(false);
+
+  const toggleTutorialMode = () => {
+    setTutorialMode(!tutorialMode);
+    setCurrentTutorialStep(0);
+  };
+
+  const tutorialSteps = [
+    {
+      element: "title",
+      title: "Página de Inicio de Sesión",
+      description: "Esta es la página principal donde puedes acceder al sistema según tu tipo de usuario.",
+      position: { top: '15%', left: '50%' }
+    },
+    {
+      element: "aprendizCard",
+      title: "Acceso para Aprendices",
+      description: "Haz clic aquí si eres estudiante para acceder a tu portal de aprendizaje.",
+      position: { top: '30%', left: '35%' }
+    },
+    {
+      element: "funcionarioCard",
+      title: "Acceso para Funcionarios",
+      description: "Haz clic aquí si eres instructor o personal administrativo para acceder al sistema.",
+      position: { top: '30%', left: '65%' }
+    },
+    {
+      element: "recuperarPassword",
+      title: "Recuperar Contraseña",
+      description: "Si olvidaste tu contraseña, haz clic aquí para restablecerla.",
+      position: { bottom: '8%', left: '50%' }
+    }
+  ];
+
+  const handleNextTutorialStep = () => {
+    if (currentTutorialStep < tutorialSteps.length - 1) {
+      setCurrentTutorialStep(currentTutorialStep + 1);
+    } else {
+      setTutorialMode(false);
+    }
+  };
 
   return (
     <Box
@@ -37,13 +82,40 @@ const LoginPage = () => {
         justifyContent: 'center',
         padding: 0, 
         margin: 0, 
-        overflow: 'hidden' 
+        overflow: 'hidden',
+        position: 'relative'
       }}
     >
+      {/* Botón de tutorial en la parte inferior */}
+      <Button
+        variant="contained"
+        startIcon={<HelpOutlineIcon />}
+        onClick={toggleTutorialMode}
+        sx={{
+          position: 'fixed',
+          bottom: 20,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          borderRadius: 20,
+          py: 1,
+          px: 3,
+          backgroundColor: '#1a237e',
+          color: 'white',
+          '&:hover': {
+            backgroundColor: '#0d1642',
+          },
+          zIndex: 1100
+        }}
+      >
+        {tutorialMode ? 'Cerrar Tutorial' : 'Tutorial'}
+      </Button>
+
       <Container maxWidth="md" sx={{
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
+        position: 'relative',
+        zIndex: tutorialMode ? 1 : 1050,
       }}>
         <Paper
           elevation={10}
@@ -85,6 +157,7 @@ const LoginPage = () => {
 
           <Box sx={{ position: 'relative', zIndex: 1 }}>
             <Typography
+              id="title"
               variant="h3"
               component="h1"
               gutterBottom
@@ -123,6 +196,7 @@ const LoginPage = () => {
             >
               {/* Card para Aprendiz */}
               <Paper
+                id="aprendizCard"
                 elevation={4}
                 sx={{
                   width: { xs: '90%', sm: 280 },
@@ -190,6 +264,7 @@ const LoginPage = () => {
 
               {/* Card para Funcionario */}
               <Paper
+                id="funcionarioCard"
                 elevation={4}
                 sx={{
                   width: { xs: '90%', sm: 280 },
@@ -257,7 +332,7 @@ const LoginPage = () => {
             </Box>
 
             {/* Botón de recuperar contraseña */}
-            <Box sx={{ textAlign: 'center', mt: 4 }}>
+            <Box id="recuperarPassword" sx={{ textAlign: 'center', mt: 4 }}>
               <Typography
                 variant="body2"
                 component="button"
@@ -352,6 +427,89 @@ const LoginPage = () => {
           </Fade>
         </Modal>
       </Container>
+
+      {/* Overlay Tutorial */}
+      {tutorialMode && (
+        <>
+          {/* Capa oscura */}
+          <Box
+            sx={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: 1000,
+            }}
+          />
+
+          {/* Ventana de tutorial */}
+          <Box
+            sx={{
+              position: 'fixed',
+              ...tutorialSteps[currentTutorialStep].position,
+              transform: 'translate(-50%, -50%)',
+              zIndex: 1200,
+              display: 'flex',
+              flexDirection: 'column',
+              maxWidth: 350,
+              backgroundColor: 'white',
+              borderRadius: 2,
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+              p: 3,
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <Typography variant="h6" fontWeight="bold" color="#1a237e">
+                {tutorialSteps[currentTutorialStep].title}
+              </Typography>
+              <IconButton size="small" onClick={toggleTutorialMode}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
+
+            <Typography variant="body2" sx={{ mb: 2 }}>
+              {tutorialSteps[currentTutorialStep].description}
+            </Typography>
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                {`${currentTutorialStep + 1} de ${tutorialSteps.length}`}
+              </Typography>
+
+              <Button
+                variant="contained"
+                endIcon={<ArrowRightAltIcon />}
+                onClick={handleNextTutorialStep}
+                sx={{
+                  backgroundColor: '#1a237e',
+                  '&:hover': {
+                    backgroundColor: '#0d1642',
+                  },
+                }}
+              >
+                {currentTutorialStep === tutorialSteps.length - 1 ? 'Finalizar' : 'Siguiente'}
+              </Button>
+            </Box>
+
+            {/* Flecha apuntando al elemento */}
+            <Box
+              sx={{
+                position: 'absolute',
+                width: 0,
+                height: 0,
+                borderLeft: '10px solid transparent',
+                borderRight: '10px solid transparent',
+                borderTop: '15px solid white',
+                bottom: -15,
+                left: '50%',
+                transform: 'translateX(-50%)',
+              }}
+            />
+          </Box>
+        </>
+      )}
     </Box>
   );
 };
