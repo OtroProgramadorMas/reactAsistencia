@@ -34,13 +34,13 @@ const LoginAprendiz = ({ onClose }: { onClose: () => void }) => {
           localStorage.setItem("id", data.user.id);
           localStorage.setItem("token", data.token);
           
-          // Opcional: Guardar más información del usuario si lo necesitas
-          localStorage.setItem("userData", JSON.stringify({
-            id: data.user.id,
-            nombre: data.user.nombre || `${data.user.nombres || ''} ${data.user.apellidos || ''}`,
-            email: data.user.email,
-            tipo: 'aprendiz'
-          }));
+          // // Opcional: Guardar más información del usuario si lo necesitas
+          // localStorage.setItem("userData", JSON.stringify({
+          //   id: data.user.id,
+          //   nombre: data.user.nombre || `${data.user.nombres || ''} ${data.user.apellidos || ''}`,
+          //   email: data.user.email,
+          //   tipo: 'aprendiz'
+          // }));
           
           // Disparar evento para actualizar otros componentes que dependan del localStorage
           window.dispatchEvent(new Event("storage"));

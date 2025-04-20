@@ -13,15 +13,21 @@ interface ActionButton {
 interface DinamicTableProps {
     rows: unknown[];
     columns: GridColDef[];
-    actions?: ActionButton[]; // Ahora puedes pasar múltiples botones personalizados
+    actions?: ActionButton[]; // Múltiples botones personalizados
     pagination?: { page: number; pageSize: number };
+    height?: number | string; // Altura personalizable
+    width?: number | string;  // Ancho personalizable
+    enableCheckboxSelection?: boolean; // Opción para habilitar/deshabilitar checkbox selection
 }
 
 const DinamicTable: React.FC<DinamicTableProps> = ({
     rows,
     columns,
     actions = [], // Por defecto, no hay acciones
-    pagination = { page: 0, pageSize: 8 }
+    pagination = { page: 0, pageSize: 8 },
+    height = 600, // Altura por defecto
+    width = "100%", // Ancho por defecto
+    enableCheckboxSelection = true // Habilitado por defecto
 }) => {
 
     const columnasFinales = actions.length > 0
@@ -47,21 +53,16 @@ const DinamicTable: React.FC<DinamicTableProps> = ({
         : columns;
 
     return (
-        <Paper sx={{ height: 600, width: "100%" }} role="region" aria-label="tabla dinamica">
+        <Paper sx={{ height: 600, width: "100%" }}>
             <DataGrid
+                sx={{border: 0,}}
                 rows={rows}
                 columns={columnasFinales}
                 localeText={esES.components.MuiDataGrid.defaultProps.localeText}
                 initialState={{ pagination: { paginationModel: pagination } }}
                 pageSizeOptions={[5, 8, 10, 50, 100]}
-                checkboxSelection
+                checkboxSelection={enableCheckboxSelection}
                 disableRowSelectionOnClick
-                sx={{ 
-                    border: 0,
-                    '& .MuiDataGrid-filler': {
-                      display: 'none'
-                    }
-                  }}
             />
         </Paper>
     );

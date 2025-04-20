@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Button, CircularProgress, Box, Alert } from '@mui/material';
+import React, { useState } from 'react';
+import { Button, Box } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import UpdateIcon from '@mui/icons-material/Update';
 
@@ -8,7 +8,9 @@ interface ControlBotonesAsistenciaProps {
   idAprendices: number[];
   fichaId: number;
   estadosAsistencia: { [key: number]: number };
+  existenRegistros: boolean;
   onCompletado: () => void;
+  showSnackbar: (mensaje: string, tipo: "success" | "error") => void;
 }
 
 const ControlBotonesAsistencia: React.FC<ControlBotonesAsistenciaProps> = ({
@@ -16,58 +18,24 @@ const ControlBotonesAsistencia: React.FC<ControlBotonesAsistenciaProps> = ({
   idAprendices,
   fichaId,
   estadosAsistencia,
-  onCompletado
+  existenRegistros,
+  onCompletado,
+  showSnackbar
 }) => {
-  const [existenRegistros, setExistenRegistros] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState<boolean>(false);
 
   // URL base para todas las peticiones
   const BASE_URL = "http://localhost:8000";
 
-  useEffect(() => {
-    const verificarRegistros = async () => {
-      if (!fecha || idAprendices.length === 0) return;
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) throw new Error("No se encontró token");
-
-        // Usar el nuevo endpoint para verificar asistencias
-        const response = await fetch(`${BASE_URL}/asistencia/verificar`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            fecha,
-            idFicha: fichaId
-          })
-        });
-
-        if (!response.ok) throw new Error("Error al verificar asistencias");
-
-        const data = await response.json();
-        setExistenRegistros(data.existenAsistencias);
-      } catch (err) {
-        console.error("Error verificando asistencias:", err);
-        setError(err instanceof Error ? err.message : "Error desconocido");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    verificarRegistros();
-  }, [fecha, idAprendices, fichaId]);
-
   const handleGuardar = async () => {
     setGuardando(true);
     try {
+      // Validar que se hayan seleccionado tipos de asistencia
+      const cantidadSeleccionados = Object.keys(estadosAsistencia).length;
+      if (cantidadSeleccionados === 0) {
+        throw new Error("No se ha seleccionado ningún tipo de asistencia");
+      }
+
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No se encontró token");
 
@@ -94,13 +62,17 @@ const ControlBotonesAsistencia: React.FC<ControlBotonesAsistenciaProps> = ({
 
       const data = await response.json();
       if (data.success) {
-        setExistenRegistros(true);
+        showSnackbar(
+          `Asistencias guardadas correctamente para ${cantidadSeleccionados} aprendices`, 
+          "success"
+        );
         onCompletado();
       } else {
         throw new Error(data.msg || "Error al guardar");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
+      const errorMsg = err instanceof Error ? err.message : "Error desconocido";
+      showSnackbar(`Error al guardar asistencias: ${errorMsg}`, "error");
     } finally {
       setGuardando(false);
     }
@@ -109,6 +81,12 @@ const ControlBotonesAsistencia: React.FC<ControlBotonesAsistenciaProps> = ({
   const handleActualizar = async () => {
     setGuardando(true);
     try {
+      // Validar que se hayan seleccionado tipos de asistencia
+      const cantidadSeleccionados = Object.keys(estadosAsistencia).length;
+      if (cantidadSeleccionados === 0) {
+        throw new Error("No se ha seleccionado ningún tipo de asistencia");
+      }
+
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No se encontró token");
 
@@ -135,20 +113,21 @@ const ControlBotonesAsistencia: React.FC<ControlBotonesAsistenciaProps> = ({
 
       const data = await response.json();
       if (data.success) {
+        showSnackbar(
+          `Asistencias actualizadas correctamente para ${cantidadSeleccionados} aprendices`, 
+          "success"
+        );
         onCompletado();
       } else {
         throw new Error(data.msg || "Error al actualizar");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
+      const errorMsg = err instanceof Error ? err.message : "Error desconocido";
+      showSnackbar(`Error al actualizar asistencias: ${errorMsg}`, "error");
     } finally {
       setGuardando(false);
     }
   };
-
-  if (loading) return <CircularProgress size={30} />;
-
-  if (error) return <Alert severity="error">{error}</Alert>;
 
   return (
     <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>

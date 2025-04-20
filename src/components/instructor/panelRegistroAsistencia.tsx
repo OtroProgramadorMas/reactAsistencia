@@ -13,9 +13,10 @@ import {
   FormControlLabel,
 } from "@mui/material";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import SearchIcon from "@mui/icons-material/Search";
 import FichaPaper from "../../components/shared/paper_ficha";
 import ControlBotonesAsistencia from "./ControlBotonesAsistencia";
+import useSnackbar from "../shared/useSnackbar";
+import CustomSnackbar from "../shared/customSnackbar";
 
 type Asistencia = {
   id: number;
@@ -28,16 +29,27 @@ type TipoAsistencia = {
   nombre_tipo_asistencia: string;
 };
 
+type AsistenciaRegistrada = {
+  idasistencia: number;
+  aprendiz_idaprendiz: number;
+  tipo_asistencia_idtipo_asistencia: number;
+};
+
 const PanelRegistroAsistencia = ({ value }: { value: string }) => {
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
   const [fecha, setFecha] = useState<string>(new Date().toISOString().split("T")[0]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>("");
   const [tiposAsistencia, setTiposAsistencia] = useState<TipoAsistencia[]>([]);
   const [loadingTipos, setLoadingTipos] = useState<boolean>(false);
   const [errorTipos, setErrorTipos] = useState<string | null>(null);
   const [estadoTemporal, setEstadoTemporal] = useState<{ [key: number]: number }>({});
+  const [asistenciasRegistradas, setAsistenciasRegistradas] = useState<AsistenciaRegistrada[]>([]);
+  const [loadingAsistencias, setLoadingAsistencias] = useState<boolean>(false);
+  const [errorAsistencias, setErrorAsistencias] = useState<string | null>(null);
+  
+  // Usando el hook personalizado para snackbars
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
   useEffect(() => {
     const cargarAprendices = async () => {
@@ -61,10 +73,8 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
         const aprendicesFormateados: Asistencia[] = data.aprendices.map((a: any) => ({
           id: a.idaprendiz,
           aprendiz: `${a.nombres_aprendiz} ${a.apellidos_aprendiz}`,
-          documento: a.documento_aprendiz,
+          documento: `${a.abreviatura_tipo_documento}  ${a.documento_aprendiz}`,
         }));
-
-        console.log(aprendicesFormateados);
 
         setAsistencias(aprendicesFormateados);
       } catch (err) {
@@ -87,22 +97,16 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
             Authorization: `Bearer ${token}`,
           },
         });
-    
+
         if (!response.ok) throw new Error("Error al obtener tipos");
-    
+
         const data = await response.json();
-        
+
         if (!data.success || !Array.isArray(data.tipos)) {
           throw new Error("Formato de datos inválido");
         }
-    
-        // Transformar el formato de los datos para que coincidan con la estructura esperada
-        const tiposFormateados = data.tipos.map((tipo: any) => ({
-          id: tipo.idtipo_asistencia,
-          nombre: tipo.nombre_tipo_asistencia
-        }));
-    
-        setTiposAsistencia(tiposFormateados);
+
+        setTiposAsistencia(data.tipos);
       } catch (err) {
         console.error("Error al obtener tipos de asistencia:", err);
         setErrorTipos(err instanceof Error ? err.message : "Error desconocido");
@@ -118,6 +122,68 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
     }
   }, [value]);
 
+  // Obtener los registros de asistencia existentes para la fecha y ficha
+  useEffect(() => {
+    const cargarAsistenciasRegistradas = async () => {
+      if (!fecha || !value) return;
+
+      setLoadingAsistencias(true);
+      setErrorAsistencias(null);
+      
+      // Limpiar el estado temporal al cambiar la fecha
+      setEstadoTemporal({});
+
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("No se encontró token");
+
+        // Usar el endpoint para obtener las asistencias registradas
+        const response = await fetch(`http://localhost:8000/asistencias/fecha-ficha`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            fecha,
+            idFicha: Number(value)
+          })
+        });
+
+        if (!response.ok) throw new Error("Error al obtener asistencias registradas");
+
+        const data = await response.json();
+        
+        if (data.success && Array.isArray(data.asistencias)) {
+          setAsistenciasRegistradas(data.asistencias);
+          
+          // Si hay asistencias registradas, actualizar el estado temporal
+          if (data.asistencias.length > 0) {
+            const nuevoEstado: { [key: number]: number } = {};
+            data.asistencias.forEach((asistencia: AsistenciaRegistrada) => {
+              nuevoEstado[asistencia.aprendiz_idaprendiz] = asistencia.tipo_asistencia_idtipo_asistencia;
+            });
+            
+            setEstadoTemporal(nuevoEstado);
+          }
+        }
+      } catch (err) {
+        console.error("Error obteniendo asistencias:", err);
+        setErrorAsistencias(err instanceof Error ? err.message : "Error desconocido");
+      } finally {
+        setLoadingAsistencias(false);
+      }
+    };
+
+    cargarAsistenciasRegistradas();
+  }, [fecha, value]);
+
+  // Función para obtener el nombre del tipo de asistencia
+  const getNombreTipoAsistencia = (tipoId: number) => {
+    const tipo = tiposAsistencia.find(t => t.idtipo_asistencia === tipoId);
+    return tipo ? tipo.nombre_tipo_asistencia : "N/A";
+  };
+
   const handleEstadoChange = (id: number, tipoId: number) => {
     setEstadoTemporal((prev) => ({
       ...prev,
@@ -125,17 +191,37 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
     }));
   };
 
-  const aprendicesFiltrados = asistencias.filter(item =>
-    item.aprendiz.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.documento.includes(searchTerm)
-  );
-
   const columns = [
     { field: "aprendiz", headerName: "Aprendiz", width: 250 },
     { field: "documento", headerName: "Documento", width: 150 },
+    // {
+    //   field: "estadoActual",
+    //   headerName: "Asistencia Registrada",
+    //   width: 180,
+    //   renderCell: (params: any) => {
+    //     const id = params.row.id;
+        
+    //     if (loadingAsistencias) return <CircularProgress size={20} />;
+    //     if (errorAsistencias) return <Typography color="error">Error al cargar asistencias</Typography>;
+        
+    //     // Encontrar la asistencia para este aprendiz
+    //     const asistenciaActual = asistenciasRegistradas.find(a => a.aprendiz_idaprendiz === id);
+        
+    //     if (asistenciaActual) {
+    //       return (
+    //         <Typography variant="body2">
+    //           {getNombreTipoAsistencia(asistenciaActual.tipo_asistencia_idtipo_asistencia)}
+    //         </Typography>
+    //       );
+    //     }
+        
+    //     // Si no hay registro, mostrar N/A
+    //     return <Typography variant="body2" color="text.secondary">N/A</Typography>;
+    //   },
+    // },
     {
       field: "estado",
-      headerName: "Tipo de Asistencia",
+      headerName: "Registrar/Modificar Asistencia",
       width: 400,
       renderCell: (params: any) => {
         const id = params.row.id;
@@ -149,6 +235,7 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
             row
             value={selected}
             onChange={(e) => handleEstadoChange(id, parseInt(e.target.value))}
+            sx={{ flexWrap: 'nowrap' }}
           >
             {tiposAsistencia.length > 0 ? (
               tiposAsistencia.map((tipos) => (
@@ -157,6 +244,12 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
                   value={tipos.idtipo_asistencia}
                   control={<Radio size="small" />}
                   label={tipos.nombre_tipo_asistencia}
+                  sx={{ 
+                    marginRight: 2,
+                    '& .MuiFormControlLabel-label': {
+                      fontSize: '0.875rem',
+                    }
+                  }}
                 />
               ))
             ) : (
@@ -167,6 +260,59 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
       },
     },
   ];
+
+  // Cuando cambia la fecha, recargar los datos de asistencia
+  const handleFechaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFecha(e.target.value);
+  };
+
+  // Función para recargar asistencias después de guardar/actualizar
+  const cargarAsistenciasActualizadas = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("No se encontró token");
+
+      const response = await fetch(`http://localhost:8000/asistencias/fecha-ficha`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fecha,
+          idFicha: Number(value)
+        })
+      });
+
+      if (!response.ok) throw new Error("Error al obtener asistencias actualizadas");
+
+      const data = await response.json();
+      
+      if (data.success && Array.isArray(data.asistencias)) {
+        setAsistenciasRegistradas(data.asistencias);
+        
+        // Actualizar el estado temporal con los nuevos valores
+        if (data.asistencias.length > 0) {
+          const nuevoEstado: { [key: number]: number } = {};
+          data.asistencias.forEach((asistencia: AsistenciaRegistrada) => {
+            nuevoEstado[asistencia.aprendiz_idaprendiz] = asistencia.tipo_asistencia_idtipo_asistencia;
+          });
+          setEstadoTemporal(nuevoEstado);
+        } else {
+          // Si no hay registros, limpiar el estado temporal
+          setEstadoTemporal({});
+        }
+      }
+    } catch (err) {
+      console.error("Error actualizando asistencias:", err);
+      setErrorAsistencias(err instanceof Error ? err.message : "Error desconocido");
+    }
+  };
+
+  // Función para manejar cuando se completa una operación
+  const handleCompletado = () => {
+    cargarAsistenciasActualizadas();
+  };
 
   return (
     <>
@@ -190,7 +336,7 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
               fullWidth
               variant="outlined"
               value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
+              onChange={handleFechaChange}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -208,23 +354,24 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
         </Box>
       </Box>
 
+      {error && (
+        <Alert 
+          severity="error" 
+          sx={{ mb: 3 }}
+        >
+          {error}
+        </Alert>
+      )}
+
       <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h5">Listado de Aprendices ({fecha})</Typography>
-          <TextField
-            placeholder="Buscar por nombre o documento"
-            variant="outlined"
-            size="small"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
+          {loadingAsistencias && <CircularProgress size={24} />}
+          {asistenciasRegistradas.length > 0 && (
+            <Alert severity="info" sx={{ ml: 2 }}>
+              Hay registros de asistencia para esta fecha
+            </Alert>
+          )}
         </Box>
 
         {loading ? (
@@ -235,9 +382,10 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
           <Alert severity="error">{error}</Alert>
         ) : (
           <DinamicTable
-            rows={aprendicesFiltrados}
+            rows={asistencias}
             columns={columns}
             pagination={{ page: 0, pageSize: 10 }}
+            enableCheckboxSelection={false}
           />
         )}
 
@@ -247,15 +395,18 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
             idAprendices={asistencias.map(a => a.id)}
             fichaId={Number(value)}
             estadosAsistencia={estadoTemporal}
-            onCompletado={() => {
-              // Lógica a ejecutar después de guardar/actualizar
-              // Por ejemplo, mostrar un mensaje de éxito
-            }}
+            existenRegistros={asistenciasRegistradas.length > 0}
+            onCompletado={handleCompletado}
+            showSnackbar={showSnackbar}
           />
         )}
-
-
       </Paper>
+
+      {/* Componente CustomSnackbar que muestra las notificaciones */}
+      <CustomSnackbar
+        snackbar={snackbar}
+        handleClose={closeSnackbar}
+      />
     </>
   );
 };

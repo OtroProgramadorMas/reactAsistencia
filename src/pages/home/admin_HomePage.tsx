@@ -5,7 +5,7 @@ import Navbar from "../../components/shared/navbar";
 import Sidebar from "../../components/admin/sidebar";
 
 import PanelPrincipal from "../../components/admin/panelPrincipal";
-import AdminPanel from "../../components/admin/Funcionarios/panelAgregarAdmin";
+import AdminPanel from "../../components/admin/Funcionarios/panelFuncionarios";
 import ProgramasPanel from "../../components/admin/Sena/panelProgramas";
 import FichasPanel from "../../components/admin/Sena/panelFichas";
 import PanelAprendiz from "../../components/admin/Sena/panelAprendiz";

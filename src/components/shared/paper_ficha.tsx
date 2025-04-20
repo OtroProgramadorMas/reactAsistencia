@@ -62,7 +62,7 @@ const FichaPaper: React.FC<FichaPaperProps> = ({ fichaId }) => {
       ) : ficha ? (
         <>
           <Typography variant="h5" gutterBottom>
-            Ficha #{ficha.codigo_ficha}
+            Ficha N°{ficha.codigo_ficha}
           </Typography>
           <Typography variant="subtitle1" gutterBottom>
             <strong>Programa:</strong> {ficha.nombre_programa}
