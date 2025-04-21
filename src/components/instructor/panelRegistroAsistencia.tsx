@@ -11,6 +11,7 @@ import {
   Radio,
   RadioGroup,
   FormControlLabel,
+  styled
 } from "@mui/material";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import FichaPaper from "../../components/shared/paper_ficha";
@@ -35,6 +36,31 @@ type AsistenciaRegistrada = {
   tipo_asistencia_idtipo_asistencia: number;
 };
 
+// Radio personalizado con colores según el tipo de asistencia
+const StyledRadio = styled(Radio)(({ theme, tipoNombre }) => {
+  let color = theme.palette.primary.main;
+  
+  if (tipoNombre) {
+    const nombreLowerCase = tipoNombre.toLowerCase();
+    if (nombreLowerCase === 'presente') {
+      color = theme.palette.success.main; // Verde para presente
+    } else if (nombreLowerCase === 'tardanza') {
+      color = theme.palette.warning.main; // Amarillo para tardanza
+    } else if (nombreLowerCase === 'ausente') {
+      color = theme.palette.error.main; // Rojo para ausente
+    }
+  }
+  
+  return {
+    '&.Mui-checked': {
+      color: color,
+    },
+    '&:hover': {
+      backgroundColor: `${color}10`,
+    },
+  };
+});
+
 const PanelRegistroAsistencia = ({ value }: { value: string }) => {
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
   const [fecha, setFecha] = useState<string>(new Date().toISOString().split("T")[0]);
@@ -47,7 +73,7 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
   const [asistenciasRegistradas, setAsistenciasRegistradas] = useState<AsistenciaRegistrada[]>([]);
   const [loadingAsistencias, setLoadingAsistencias] = useState<boolean>(false);
   const [errorAsistencias, setErrorAsistencias] = useState<string | null>(null);
-  
+
   // Usando el hook personalizado para snackbars
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
@@ -129,7 +155,7 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
 
       setLoadingAsistencias(true);
       setErrorAsistencias(null);
-      
+
       // Limpiar el estado temporal al cambiar la fecha
       setEstadoTemporal({});
 
@@ -153,17 +179,17 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
         if (!response.ok) throw new Error("Error al obtener asistencias registradas");
 
         const data = await response.json();
-        
+
         if (data.success && Array.isArray(data.asistencias)) {
           setAsistenciasRegistradas(data.asistencias);
-          
+
           // Si hay asistencias registradas, actualizar el estado temporal
           if (data.asistencias.length > 0) {
             const nuevoEstado: { [key: number]: number } = {};
             data.asistencias.forEach((asistencia: AsistenciaRegistrada) => {
               nuevoEstado[asistencia.aprendiz_idaprendiz] = asistencia.tipo_asistencia_idtipo_asistencia;
             });
-            
+
             setEstadoTemporal(nuevoEstado);
           }
         }
@@ -191,37 +217,21 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
     }));
   };
 
+  // Función para obtener el color según el tipo de asistencia
+  const getColorByTipo = (tipoNombre: string): string => {
+    const nombreLowerCase = tipoNombre.toLowerCase();
+    if (nombreLowerCase === 'presente') return '#4caf50';
+    if (nombreLowerCase === 'tardanza') return '#ff9800';
+    if (nombreLowerCase === 'ausente') return '#f44336';
+    return '#1976d2'; // Color por defecto
+  };
+
   const columns = [
     { field: "aprendiz", headerName: "Aprendiz", width: 250 },
     { field: "documento", headerName: "Documento", width: 150 },
-    // {
-    //   field: "estadoActual",
-    //   headerName: "Asistencia Registrada",
-    //   width: 180,
-    //   renderCell: (params: any) => {
-    //     const id = params.row.id;
-        
-    //     if (loadingAsistencias) return <CircularProgress size={20} />;
-    //     if (errorAsistencias) return <Typography color="error">Error al cargar asistencias</Typography>;
-        
-    //     // Encontrar la asistencia para este aprendiz
-    //     const asistenciaActual = asistenciasRegistradas.find(a => a.aprendiz_idaprendiz === id);
-        
-    //     if (asistenciaActual) {
-    //       return (
-    //         <Typography variant="body2">
-    //           {getNombreTipoAsistencia(asistenciaActual.tipo_asistencia_idtipo_asistencia)}
-    //         </Typography>
-    //       );
-    //     }
-        
-    //     // Si no hay registro, mostrar N/A
-    //     return <Typography variant="body2" color="text.secondary">N/A</Typography>;
-    //   },
-    // },
     {
       field: "estado",
-      headerName: "Registrar/Modificar Asistencia",
+      headerName: "Asistencia",
       width: 400,
       renderCell: (params: any) => {
         const id = params.row.id;
@@ -237,24 +247,35 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
             onChange={(e) => handleEstadoChange(id, parseInt(e.target.value))}
             sx={{ flexWrap: 'nowrap' }}
           >
-            {tiposAsistencia.length > 0 ? (
-              tiposAsistencia.map((tipos) => (
-                <FormControlLabel
-                  key={tipos.idtipo_asistencia}
-                  value={tipos.idtipo_asistencia}
-                  control={<Radio size="small" />}
-                  label={tipos.nombre_tipo_asistencia}
-                  sx={{ 
-                    marginRight: 2,
-                    '& .MuiFormControlLabel-label': {
-                      fontSize: '0.875rem',
-                    }
-                  }}
-                />
-              ))
-            ) : (
-              <Typography variant="body2">No hay tipos disponibles</Typography>
-            )}
+            {tiposAsistencia.map((tipo) => (
+              <FormControlLabel
+                key={tipo.idtipo_asistencia}
+                value={tipo.idtipo_asistencia}
+                control={
+                  <StyledRadio 
+                    size="small" 
+                    tipoNombre={tipo.nombre_tipo_asistencia}
+                  />
+                }
+                label={
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: selected === tipo.idtipo_asistencia ? getColorByTipo(tipo.nombre_tipo_asistencia) : 'text.secondary',
+                      fontWeight: selected === tipo.idtipo_asistencia ? 'bold' : 'normal'
+                    }}
+                  >
+                    {tipo.nombre_tipo_asistencia}
+                  </Typography>
+                }
+                sx={{ 
+                  mr: 2, 
+                  borderRadius: 1,
+                  px: 1,
+                  backgroundColor: selected === tipo.idtipo_asistencia ? `${getColorByTipo(tipo.nombre_tipo_asistencia)}15` : 'transparent'
+                }}
+              />
+            ))}
           </RadioGroup>
         );
       },
@@ -287,10 +308,10 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
       if (!response.ok) throw new Error("Error al obtener asistencias actualizadas");
 
       const data = await response.json();
-      
+
       if (data.success && Array.isArray(data.asistencias)) {
         setAsistenciasRegistradas(data.asistencias);
-        
+
         // Actualizar el estado temporal con los nuevos valores
         if (data.asistencias.length > 0) {
           const nuevoEstado: { [key: number]: number } = {};
@@ -326,7 +347,7 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
       </Box>
 
       <Box display="flex" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={2} mb={3}>
-        <Paper elevation={3} sx={{ p: 3, flex: '1 1 300px', borderRadius: 2 }}>
+        <Paper elevation={3} sx={{ p: 1.5, flex: '1 1 300px', borderRadius: 2 }}>
           <Typography variant="h6" gutterBottom>
             Fecha de Registro
           </Typography>
@@ -350,20 +371,22 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
         </Paper>
 
         <Box sx={{ flex: '1 1 300px' }}>
-          <FichaPaper fichaId={Number(value)} />
+          <FichaPaper
+            fichaId={Number(value)}
+            showTitle={false} />
         </Box>
       </Box>
 
       {error && (
-        <Alert 
-          severity="error" 
+        <Alert
+          severity="error"
           sx={{ mb: 3 }}
         >
           {error}
         </Alert>
       )}
 
-      <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
+      <Paper elevation={3} sx={{ p: 3, borderRadius: 2, width:"90%" }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h5">Listado de Aprendices ({fecha})</Typography>
           {loadingAsistencias && <CircularProgress size={24} />}
@@ -386,6 +409,8 @@ const PanelRegistroAsistencia = ({ value }: { value: string }) => {
             columns={columns}
             pagination={{ page: 0, pageSize: 10 }}
             enableCheckboxSelection={false}
+            width={"100%"}
+            height={400}
           />
         )}
 

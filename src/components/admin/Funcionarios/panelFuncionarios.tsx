@@ -320,6 +320,7 @@ const GestionFuncionarios: React.FC = () => {
                     Administra los funcionarios, instructores y administradores del sistema
                 </Typography>
             </Box>
+<<<<<<< HEAD
 
             {/* Barra de acciones */}
             <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between' }}>
@@ -337,6 +338,20 @@ const GestionFuncionarios: React.FC = () => {
                             </Box>
                         )
                     }}
+=======
+          ) : error ? (
+            <Alert severity="error">{error}</Alert>
+          ) : (
+            <Grid2 container spacing={2} marginTop={2}>
+              <Grid2 size={12}>
+                <DinamicTable
+                  rows={rowsForTable}
+                  columns={columns}
+                  actions={actions}
+                  pagination={{ page: 0, pageSize: 10 }}
+                  enableCheckboxSelection={false}
+                  width="100%"
+>>>>>>> edcb8b138396531cf64be50da905655965f27b89
                 />
                 <Button
                     variant="contained"

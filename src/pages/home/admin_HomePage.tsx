@@ -105,6 +105,7 @@ const AdminHomePage = () => {
   return (
     <>
       <Navbar />
+<<<<<<< HEAD
       <IconButton
         onClick={toggleTutorialMode}
         sx={{
@@ -120,12 +121,22 @@ const AdminHomePage = () => {
 
       <div style={{ height: "64px" }} />
       <div style={{ display: "flex" }}>
+=======
+      <div style={{ height: "64px" }} /> {/* Espacio para navbar fijo */}
+      <div style={{ display: "flex", width: "90%" }}>
+>>>>>>> edcb8b138396531cf64be50da905655965f27b89
         <Sidebar onSelect={handleSelect} />
-        <main>
-          <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-            {renderPanel()}
-          </Box>
-        </main>
+        <Box 
+          component="main" 
+          sx={{ 
+            flexGrow: 1, 
+            p: 3, 
+            width: "90%", 
+            overflowX: "auto" 
+          }}
+        >
+          {renderPanel()}
+        </Box>
       </div>
 
       {/* Tutorial Overlay */}

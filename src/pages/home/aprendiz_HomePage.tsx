@@ -6,39 +6,45 @@ import {
   CircularProgress, 
   Card, 
   Chip,
-  Divider,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Grid,
-  Button,
   Tabs,
   Tab,
+<<<<<<< HEAD
   IconButton,
   Paper
+=======
+  CardContent,
+  Alert
+>>>>>>> edcb8b138396531cf64be50da905655965f27b89
 } from '@mui/material';
 import { 
-  School as SchoolIcon, 
   CalendarToday as CalendarIcon, 
   Person as PersonIcon,
   Email as EmailIcon,
   Phone as PhoneIcon,
   ExitToApp as ExitToAppIcon,
+<<<<<<< HEAD
   DashboardCustomize as DashboardIcon,
   HelpOutline as HelpOutlineIcon,
   Close as CloseIcon,
   ArrowRightAlt as ArrowRightAltIcon
+=======
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
+  Warning as WarningIcon,
+  Assignment as AssignmentIcon
+>>>>>>> edcb8b138396531cf64be50da905655965f27b89
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import FichaPaper from '../../components/shared/paper_ficha';
 import FuncionarioCard from '../../components/shared/paper_funcionario';
+import DinamicTable from '../../components/shared/dataTable';
+import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 
 interface AprendizData {
   idAprendiz: number;
   documento: string;
+  abreviaturaTipoDocumento: string;
   nombres: string;
   apellidos: string;
   email: string;
@@ -46,6 +52,19 @@ interface AprendizData {
   ficha: string;
   fichaId: number;
   programa: string;
+}
+
+interface FichaData {
+  idficha: number;
+  codigo_ficha: string;
+  fecha_inicio: string;
+  funcionario_idfuncionario: number;
+  programa_idprograma: number;
+  estado_ficha_idestado_ficha: number;
+  idestado_ficha: number;
+  estado_ficha: string;
+  codigo_programa: string;
+  nombre_programa: string;
 }
 
 interface AsistenciaData {
@@ -91,6 +110,7 @@ const AprendizHomePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [aprendizData, setAprendizData] = useState<AprendizData | null>(null);
+  const [fichaData, setFichaData] = useState<FichaData | null>(null);
   const [asistencias, setAsistencias] = useState<AsistenciaData[]>([]);
   const [tabValue, setTabValue] = useState(0);
   const [tutorialMode, setTutorialMode] = useState(false);
@@ -109,23 +129,14 @@ const AprendizHomePage = () => {
           return;
         }
         
-        // Hacer las peticiones al servidor en paralelo
-        const [aprendizResponse, asistenciasResponse] = await Promise.all([
-          fetch(`http://localhost:8000/aprendiz/${id}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            }
-          }),
-          fetch(`http://localhost:8000/asistencia/aprendiz/${id}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            }
-          })
-        ]);
+        // Hacer la petición para obtener datos del aprendiz
+        const aprendizResponse = await fetch(`http://localhost:8000/aprendiz/${id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
         
         // Procesar respuesta del aprendiz
         if (aprendizResponse.ok) {
@@ -136,6 +147,7 @@ const AprendizHomePage = () => {
           setAprendizData({
             idAprendiz: aprendizFromServer.idaprendiz,
             documento: aprendizFromServer.documento_aprendiz,
+            abreviaturaTipoDocumento: aprendizFromServer.abreviatura_tipo_documento || '',
             nombres: aprendizFromServer.nombres_aprendiz,
             apellidos: aprendizFromServer.apellidos_aprendiz,
             email: aprendizFromServer.email_aprendiz,
@@ -144,18 +156,40 @@ const AprendizHomePage = () => {
             fichaId: aprendizFromServer.ficha_idficha || 0,
             programa: aprendizFromServer.nombre_programa || ''
           });
+          
+          // Una vez que tenemos la ficha, obtener sus datos
+          const fichaId = aprendizFromServer.ficha_idficha;
+          if (fichaId) {
+            const fichaResponse = await fetch(`http://localhost:8000/fichas/${fichaId}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            if (fichaResponse.ok) {
+              const fichaResData = await fichaResponse.json();
+              setFichaData(fichaResData.ficha);
+            }
+          }
+          
+          // Obtener asistencias
+          const asistenciasResponse = await fetch(`http://localhost:8000/asistencia/aprendiz/${id}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (asistenciasResponse.ok) {
+            const asistenciasResData = await asistenciasResponse.json();
+            setAsistencias(asistenciasResData.asistencias || []);
+          }
         } else {
           const errorData = await aprendizResponse.json();
           setError(errorData.msg || 'Error al obtener datos del aprendiz');
-        }
-        
-        // Procesar respuesta de asistencias
-        if (asistenciasResponse.ok) {
-          const asistenciasResData = await asistenciasResponse.json();
-          setAsistencias(asistenciasResData.asistencias || []);
-        } else {
-          const errorData = await asistenciasResponse.json();
-          console.error('Error al obtener asistencias:', errorData.msg);
         }
       } catch (error) {
         console.error('Error:', error);
@@ -291,6 +325,49 @@ const AprendizHomePage = () => {
         return 'default';
     }
   };
+
+  // Obtener icono según tipo de asistencia
+  const getAsistenciaIcon = (tipo: string) => {
+    switch (tipo.toLowerCase()) {
+      case 'presente':
+        return <CheckCircleIcon color="success" />;
+      case 'ausente':
+        return <CancelIcon color="error" />;
+      case 'tardanza':
+        return <WarningIcon color="warning" />;
+      default:
+        return null;
+    }
+  };
+  
+  // Preparar los datos para el DataTable (solo fecha y estado)
+  const asistenciasRows = asistencias.map((asistencia) => ({
+    id: asistencia.idasistencia,
+    fecha: formatDate(asistencia.fecha_asistencia),
+    estado: asistencia.nombre_tipo_asistencia
+  }));
+
+  // Definir las columnas para el DataTable (solo fecha y estado)
+  const asistenciasColumns: GridColDef[] = [
+    { 
+      field: 'fecha', 
+      headerName: 'Fecha', 
+      width: 150 
+    },
+    { 
+      field: 'estado', 
+      headerName: 'Estado', 
+      width: 200,
+      renderCell: (params: GridRenderCellParams) => (
+        <Chip 
+          icon={getAsistenciaIcon(params.value as string)}
+          label={params.value}
+          color={getAsistenciaColor(params.value as string)}
+          size="small"
+        />
+      )
+    }
+  ];
   
   return (
     <Container maxWidth="lg">
@@ -318,11 +395,16 @@ const AprendizHomePage = () => {
       </Button>
 
       <Box sx={{ my: 4 }}>
+<<<<<<< HEAD
         {/* Header con información básica */}
         <Card 
           id="header-card"
           sx={{ mb: 4, boxShadow: 3, borderRadius: 2, overflow: 'hidden' }}
         >
+=======
+        {/* Header con nombre (simplificado) */}
+        <Card sx={{ mb: 4, boxShadow: 3, borderRadius: 2, overflow: 'hidden' }}>
+>>>>>>> edcb8b138396531cf64be50da905655965f27b89
           <Box 
             sx={{ 
               p: 3, 
@@ -334,19 +416,9 @@ const AprendizHomePage = () => {
             }}
           >
             <Box>
-              <Typography variant="h5" gutterBottom>
-                {aprendizData?.nombres} {aprendizData?.apellidos}
+              <Typography variant="h5">
+                Aprendiz: {aprendizData?.nombres} {aprendizData?.apellidos}
               </Typography>
-              <Chip 
-                icon={<SchoolIcon />} 
-                label={`Ficha: ${aprendizData?.ficha}`}
-                sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', mr: 1 }}
-              />
-              <Chip 
-                icon={<DashboardIcon />} 
-                label={aprendizData?.programa}
-                sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
-              />
             </Box>
           </Box>
         </Card>
@@ -389,51 +461,86 @@ const AprendizHomePage = () => {
             <Grid container spacing={3}>
               {/* Información del Aprendiz */}
               <Grid item xs={12} md={4}>
+<<<<<<< HEAD
                 <Card id="info-personal" sx={{ height: '100%', boxShadow: 2, borderRadius: 2 }}>
                   <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'white' }}>
+=======
+                <Card sx={{ height: '100%', boxShadow: 3, overflow: 'hidden' }}>
+                  <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'white', display: 'flex', alignItems: 'center' }}>
+                    <PersonIcon sx={{ mr: 1 }} />
+>>>>>>> edcb8b138396531cf64be50da905655965f27b89
                     <Typography variant="h6">
                       Información del Aprendiz
                     </Typography>
                   </Box>
-                  <Box sx={{ p: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <PersonIcon sx={{ mr: 1, color: 'primary.main' }} />
-                      <Box>
-                        <Typography variant="caption" color="textSecondary">Documento</Typography>
-                        <Typography variant="body1">{aprendizData?.documento}</Typography>
+                  <CardContent sx={{ p: 2 }}>
+                    {!aprendizData ? (
+                      <Alert severity="warning">No se encontró información del aprendiz</Alert>
+                    ) : (
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <AssignmentIcon sx={{ fontSize: 16, mr: 0.5, color: 'primary.main' }} />
+                          <Typography variant="body2">
+                            {aprendizData.abreviaturaTipoDocumento ?
+                              `${aprendizData.abreviaturaTipoDocumento} ${aprendizData.documento}` :
+                              aprendizData.documento}
+                          </Typography>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <EmailIcon sx={{ fontSize: 16, mr: 0.5, color: 'primary.main' }} />
+                          <Typography variant="body2" noWrap>
+                            {aprendizData.email}
+                          </Typography>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <PhoneIcon sx={{ fontSize: 16, mr: 0.5, color: 'primary.main' }} />
+                          <Typography variant="body2">
+                            {aprendizData.telefono || 'No registrado'}
+                          </Typography>
+                        </Box>
                       </Box>
-                    </Box>
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <EmailIcon sx={{ mr: 1, color: 'primary.main' }} />
-                      <Box>
-                        <Typography variant="caption" color="textSecondary">Email</Typography>
-                        <Typography variant="body1">{aprendizData?.email}</Typography>
-                      </Box>
-                    </Box>
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <PhoneIcon sx={{ mr: 1, color: 'primary.main' }} />
-                      <Box>
-                        <Typography variant="caption" color="textSecondary">Teléfono</Typography>
-                        <Typography variant="body1">{aprendizData?.telefono || 'No registrado'}</Typography>
-                      </Box>
-                    </Box>
-                  </Box>
+                    )}
+                  </CardContent>
                 </Card>
               </Grid>
               
               {/* Información de la Ficha */}
               <Grid item xs={12} md={4}>
+<<<<<<< HEAD
                 <Box id="info-ficha" sx={{ height: '100%' }}>
                   {aprendizData && <FichaPaper fichaId={aprendizData.fichaId} />}
+=======
+                <Box sx={{ height: '100%' }}>
+                  {aprendizData && 
+                    <FichaPaper 
+                      fichaId={aprendizData.fichaId} 
+                      maxWidth="100%" 
+                      maxHeight="100%" 
+                      showTitle={true}
+                    />
+                  }
+>>>>>>> edcb8b138396531cf64be50da905655965f27b89
                 </Box>
               </Grid>
               
               {/* Información del Funcionario */}
               <Grid item xs={12} md={4}>
+<<<<<<< HEAD
                 <Box id="info-instructor" sx={{ height: '100%', display: 'flex', justifyContent: 'center' }}>
                   <FuncionarioCard />
+=======
+                <Box sx={{ height: '100%' }}>
+                  {fichaData && fichaData.funcionario_idfuncionario && (
+                    <FuncionarioCard 
+                      funcionarioId={fichaData.funcionario_idfuncionario} 
+                      maxWidth="100%" 
+                      maxHeight="100%"
+                      showTitle={true} 
+                    />
+                  )}
+>>>>>>> edcb8b138396531cf64be50da905655965f27b89
                 </Box>
               </Grid>
             </Grid>
@@ -450,32 +557,14 @@ const AprendizHomePage = () => {
               
               <Box sx={{ p: 2 }}>
                 {asistencias.length > 0 ? (
-                  <TableContainer sx={{ maxHeight: 400 }}>
-                    <Table stickyHeader aria-label="tabla de asistencias">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Fecha</TableCell>
-                          <TableCell>Estado</TableCell>
-                          <TableCell>Programa</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {asistencias.map((asistencia) => (
-                          <TableRow key={asistencia.idasistencia}>
-                            <TableCell>{formatDate(asistencia.fecha_asistencia)}</TableCell>
-                            <TableCell>
-                              <Chip 
-                                label={asistencia.nombre_tipo_asistencia}
-                                color={getAsistenciaColor(asistencia.nombre_tipo_asistencia)}
-                                size="small"
-                              />
-                            </TableCell>
-                            <TableCell>{asistencia.nombre_programa}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                  <DinamicTable
+                    rows={asistenciasRows}
+                    columns={asistenciasColumns}
+                    pagination={{ page: 0, pageSize: 10 }}
+                    height={400}
+                    width="100%"
+                    enableCheckboxSelection={false}
+                  />
                 ) : (
                   <Box sx={{ py: 4, textAlign: 'center' }}>
                     <Typography variant="body1" color="textSecondary">

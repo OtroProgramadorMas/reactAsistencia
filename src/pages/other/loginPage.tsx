@@ -3,9 +3,9 @@ import { Container, Typography, Box, Modal, Paper, Fade, Button, IconButton } fr
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
-import LoginAprendiz from '../../components/LoginAprendiz';
-import LoginFuncionario from '../../components/LoginFuncionario';
-import RecuperarPassword from '../../components/RecuperarPassword';
+import LoginAprendiz from '../../components/Mains/LoginAprendiz';
+import LoginFuncionario from '../../components/Mains/LoginFuncionario';
+import RecuperarPassword from '../../components/Mains/RecuperarPassword';
 
 import imgAprendiz from './../../../src/assets/loginLogos/aprendiz.avif';
 import imgInstructor from './../../../src/assets/loginLogos/instructor.jpg';
