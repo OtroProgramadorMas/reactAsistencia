@@ -1,6 +1,10 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, IconButton, Button } from "@mui/material";
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "react-router-dom";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import CloseIcon from "@mui/icons-material/Close";
+import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
+
 import Navbar from "../../components/shared/navbar";
 import Sidebar from "../../components/admin/sidebar";
 
@@ -11,56 +15,79 @@ import FichasPanel from "../../components/admin/Sena/panelFichas";
 import PanelAprendiz from "../../components/admin/Sena/panelAprendiz";
 
 const AdminHomePage = () => {
-  // Verificamos si hay una opción guardada en localStorage
   const initialOption = localStorage.getItem('adminPanel') || "Principal";
   const [selectedOption, setSelectedOption] = useState(initialOption);
   const location = useLocation();
-  const params = useParams(); // Obtenemos los parámetros de la ruta
+  const params = useParams();
   
-  // Verificamos si estamos en la ruta de fichas o aprendices usando params
   const isFichasRoute = location.pathname.includes('/fichas/');
   const isAprendicesRoute = location.pathname.includes('/aprendices/');
-  const id = params.id; // ID del programa o ficha según la ruta
+  const id = params.id;
   
-  // Extraer parámetros de consulta
   const searchParams = new URLSearchParams(location.search);
   const nombrePrograma = searchParams.get('nombre') || searchParams.get('programa') || '';
   const codigoFicha = searchParams.get('codigo') || 'sin-codigo';
-  
-  // Si cambia la ruta, actualizamos el estado según corresponda
+
+  const [tutorialMode, setTutorialMode] = useState(false);
+  const [currentTutorialStep, setCurrentTutorialStep] = useState(0);
+
   useEffect(() => {
     if (!isFichasRoute && !isAprendicesRoute) {
-      // Si regresamos a la página principal, verificamos si tenemos una selección guardada
       if (location.pathname === '/admin') {
         const savedOption = localStorage.getItem('adminPanel');
         if (savedOption) {
           setSelectedOption(savedOption);
-          // Limpiamos el localStorage después de usarlo
           localStorage.removeItem('adminPanel');
         }
       }
     }
   }, [location.pathname, isFichasRoute, isAprendicesRoute]);
 
-  // Actualizamos la función de selección para que también guarde en localStorage
   const handleSelect = (option: string) => {
     setSelectedOption(option);
-    // Opcional: guardar en localStorage para mantener la selección en navegaciones futuras
     localStorage.setItem('adminPanel', option);
   };
 
+  const tutorialSteps = [
+    {
+      title: "Vista de Administrador",
+      description: "Desde aquí puedes gestionar instructores, programas, fichas y aprendices del sistema.",
+      position: { top: "30%", left: "50%" },
+    },
+    {
+      title: "Menú Lateral",
+      description: "Este es el menú principal. Usa estas opciones para navegar entre las diferentes funciones del sistema.",
+      position: { top: "50%", left: "15%" },
+    },
+    {
+      title: "Área de Trabajo",
+      description: "Aquí se carga la vista del panel que hayas seleccionado en el menú lateral.",
+      position: { top: "50%", left: "70%" },
+    },
+  ];
+
+  const toggleTutorialMode = () => {
+    setTutorialMode(!tutorialMode);
+    setCurrentTutorialStep(0);
+  };
+
+  const handleNextTutorialStep = () => {
+    if (currentTutorialStep < tutorialSteps.length - 1) {
+      setCurrentTutorialStep(currentTutorialStep + 1);
+    } else {
+      setTutorialMode(false);
+    }
+  };
+
   const renderPanel = () => {
-    // Si estamos en la ruta de fichas, mostramos ese panel independientemente de la opción seleccionada
     if (isFichasRoute && id) {
       return <FichasPanel programaId={id} nombrePrograma={nombrePrograma} />;
     }
-    
-    // Si estamos en la ruta de aprendices, mostramos ese panel
+
     if (isAprendicesRoute && id) {
       return <PanelAprendiz fichaId={id} codigoFicha={codigoFicha} nombrePrograma={nombrePrograma} />;
     }
 
-    // Si no, mostramos el panel correspondiente a la opción seleccionada
     switch (selectedOption) {
       case "Principal":
         return <PanelPrincipal />;
@@ -78,7 +105,20 @@ const AdminHomePage = () => {
   return (
     <>
       <Navbar />
-      <div style={{ height: "64px" }} /> {/* Espacio para navbar fijo */}
+      <IconButton
+        onClick={toggleTutorialMode}
+        sx={{
+          position: "fixed",
+          top: 600,
+          right: 124,
+          zIndex: 1300,
+          color: "#1a237e",
+        }}
+      >
+        <HelpOutlineIcon />
+      </IconButton>
+
+      <div style={{ height: "64px" }} />
       <div style={{ display: "flex" }}>
         <Sidebar onSelect={handleSelect} />
         <main>
@@ -87,6 +127,90 @@ const AdminHomePage = () => {
           </Box>
         </main>
       </div>
+
+      {/* Tutorial Overlay */}
+      {tutorialMode && (
+        <>
+          {/* Capa oscura */}
+          <Box
+            sx={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.7)",
+              zIndex: 1000,
+            }}
+            onClick={() => setTutorialMode(false)}
+          />
+
+          {/* Ventana de tutorial */}
+          <Box
+            sx={{
+              position: "fixed",
+              ...tutorialSteps[currentTutorialStep].position,
+              transform: "translate(-50%, -50%)",
+              zIndex: 1200,
+              display: "flex",
+              flexDirection: "column",
+              maxWidth: 350,
+              backgroundColor: "white",
+              borderRadius: 2,
+              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+              p: 3,
+            }}
+          >
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+              <Typography variant="h6" fontWeight="bold" color="#1a237e">
+                {tutorialSteps[currentTutorialStep].title}
+              </Typography>
+              <IconButton size="small" onClick={toggleTutorialMode}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
+
+            <Typography variant="body2" sx={{ mb: 2 }}>
+              {tutorialSteps[currentTutorialStep].description}
+            </Typography>
+
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Typography variant="body2" color="text.secondary">
+                {`${currentTutorialStep + 1} de ${tutorialSteps.length}`}
+              </Typography>
+
+              <Button
+                variant="contained"
+                endIcon={<ArrowRightAltIcon />}
+                onClick={handleNextTutorialStep}
+                sx={{
+                  backgroundColor: "#1a237e",
+                  "&:hover": {
+                    backgroundColor: "#0d1642",
+                  },
+                }}
+              >
+                {currentTutorialStep === tutorialSteps.length - 1 ? "Finalizar" : "Siguiente"}
+              </Button>
+            </Box>
+
+            {/* Flecha apuntando */}
+            <Box
+              sx={{
+                position: "absolute",
+                width: 0,
+                height: 0,
+                borderLeft: "10px solid transparent",
+                borderRight: "10px solid transparent",
+                borderTop: "15px solid white",
+                bottom: -15,
+                left: "50%",
+                transform: "translateX(-50%)",
+              }}
+            />
+          </Box>
+        </>
+      )}
     </>
   );
 };

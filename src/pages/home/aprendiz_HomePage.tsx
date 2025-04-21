@@ -1,4 +1,3 @@
-// src/pages/AprendizPage.tsx
 import React, { useEffect, useState } from 'react';
 import { 
   Container, 
@@ -17,7 +16,9 @@ import {
   Grid,
   Button,
   Tabs,
-  Tab
+  Tab,
+  IconButton,
+  Paper
 } from '@mui/material';
 import { 
   School as SchoolIcon, 
@@ -26,7 +27,10 @@ import {
   Email as EmailIcon,
   Phone as PhoneIcon,
   ExitToApp as ExitToAppIcon,
-  DashboardCustomize as DashboardIcon
+  DashboardCustomize as DashboardIcon,
+  HelpOutline as HelpOutlineIcon,
+  Close as CloseIcon,
+  ArrowRightAlt as ArrowRightAltIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import FichaPaper from '../../components/shared/paper_ficha';
@@ -89,6 +93,8 @@ const AprendizHomePage = () => {
   const [aprendizData, setAprendizData] = useState<AprendizData | null>(null);
   const [asistencias, setAsistencias] = useState<AsistenciaData[]>([]);
   const [tabValue, setTabValue] = useState(0);
+  const [tutorialMode, setTutorialMode] = useState(false);
+  const [currentTutorialStep, setCurrentTutorialStep] = useState(0);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -179,6 +185,65 @@ const AprendizHomePage = () => {
     localStorage.removeItem('userData');
     navigate('/login');
   };
+
+  // Tutorial system functions
+  const toggleTutorialMode = () => {
+    setTutorialMode(!tutorialMode);
+    setCurrentTutorialStep(0);
+  };
+
+  const handleNextTutorialStep = () => {
+    if (currentTutorialStep < tutorialSteps.length - 1) {
+      setCurrentTutorialStep(currentTutorialStep + 1);
+    } else {
+      setTutorialMode(false);
+    }
+  };
+
+  const tutorialSteps = [
+    {
+      element: "header-card",
+      title: "Panel de Aprendiz",
+      description: "Bienvenido a tu panel personal. Aquí puedes ver tu información y gestionar tu asistencia.",
+      position: { top: '20%', left: '50%' }
+    },
+    {
+      element: "info-tab",
+      title: "Pestañas de Navegación",
+      description: "Utiliza estas pestañas para navegar entre las diferentes secciones de tu panel.",
+      position: { top: '28%', left: '50%' }
+    },
+    {
+      element: "info-personal",
+      title: "Información Personal",
+      description: "Aquí puedes ver todos tus datos personales registrados en el sistema.",
+      position: { top: '45%', left: '25%' }
+    },
+    {
+      element: "info-ficha",
+      title: "Información de tu Ficha",
+      description: "En esta sección encuentras los detalles de tu ficha de formación y programa.",
+      position: { top: '45%', left: '50%' }
+    },
+    {
+      element: "info-instructor",
+      title: "Información del Instructor",
+      description: "Aquí puedes ver los datos de contacto de tu instructor asignado.",
+      position: { top: '45%', left: '75%' }
+    },
+    {
+      element: "asistencia-tab",
+      title: "Historial de Asistencias",
+      description: "Haz clic en esta pestaña para ver tu registro completo de asistencias a las sesiones formativas.",
+      position: { top: '28%', left: '50%' }
+    },
+    {
+      element: "logout-tab",
+      title: "Cerrar Sesión",
+      description: "Cuando termines de usar el sistema, haz clic aquí para cerrar tu sesión de forma segura.",
+      position: { top: '28%', left: '83%' }
+    }
+  ];
   
   // Mostrar estados de carga o error
   if (loading) {
@@ -216,11 +281,11 @@ const AprendizHomePage = () => {
   // Obtener color según tipo de asistencia
   const getAsistenciaColor = (tipo: string) => {
     switch (tipo.toLowerCase()) {
-      case 'Presente':
+      case 'presente':
         return 'success';
-      case 'Ausente':
+      case 'ausente':
         return 'error';
-      case 'Tardanza':
+      case 'tardanza':
         return 'warning';
       default:
         return 'default';
@@ -229,9 +294,35 @@ const AprendizHomePage = () => {
   
   return (
     <Container maxWidth="lg">
+      {/* Botón de tutorial flotante */}
+      <Button
+        variant="contained"
+        startIcon={<HelpOutlineIcon />}
+        onClick={toggleTutorialMode}
+        sx={{
+          position: 'fixed',
+          bottom: 20,
+          right: 20,
+          borderRadius: 20,
+          py: 1,
+          px: 3,
+          backgroundColor: '#1a237e',
+          color: 'white',
+          '&:hover': {
+            backgroundColor: '#0d1642',
+          },
+          zIndex: 1100
+        }}
+      >
+        {tutorialMode ? 'Cerrar Tutorial' : 'Tutorial'}
+      </Button>
+
       <Box sx={{ my: 4 }}>
         {/* Header con información básica */}
-        <Card sx={{ mb: 4, boxShadow: 3, borderRadius: 2, overflow: 'hidden' }}>
+        <Card 
+          id="header-card"
+          sx={{ mb: 4, boxShadow: 3, borderRadius: 2, overflow: 'hidden' }}
+        >
           <Box 
             sx={{ 
               p: 3, 
@@ -272,21 +363,21 @@ const AprendizHomePage = () => {
               indicatorColor="primary"
             >
               <Tab 
+                id="info-tab"
                 icon={<PersonIcon />} 
                 label="Información" 
-                id="tab-0" 
                 aria-controls="tabpanel-0" 
               />
               <Tab 
+                id="asistencia-tab"
                 icon={<CalendarIcon />} 
                 label="Asistencias" 
-                id="tab-1" 
                 aria-controls="tabpanel-1" 
               />
               <Tab 
+                id="logout-tab"
                 icon={<ExitToAppIcon />} 
                 label="Cerrar Sesión" 
-                id="tab-2" 
                 aria-controls="tabpanel-2"
                 sx={{ color: 'error.main' }} 
               />
@@ -298,7 +389,7 @@ const AprendizHomePage = () => {
             <Grid container spacing={3}>
               {/* Información del Aprendiz */}
               <Grid item xs={12} md={4}>
-                <Card sx={{ height: '100%', boxShadow: 2, borderRadius: 2 }}>
+                <Card id="info-personal" sx={{ height: '100%', boxShadow: 2, borderRadius: 2 }}>
                   <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'white' }}>
                     <Typography variant="h6">
                       Información del Aprendiz
@@ -334,14 +425,14 @@ const AprendizHomePage = () => {
               
               {/* Información de la Ficha */}
               <Grid item xs={12} md={4}>
-                <Box sx={{ height: '100%' }}>
+                <Box id="info-ficha" sx={{ height: '100%' }}>
                   {aprendizData && <FichaPaper fichaId={aprendizData.fichaId} />}
                 </Box>
               </Grid>
               
               {/* Información del Funcionario */}
               <Grid item xs={12} md={4}>
-                <Box sx={{ height: '100%', display: 'flex', justifyContent: 'center' }}>
+                <Box id="info-instructor" sx={{ height: '100%', display: 'flex', justifyContent: 'center' }}>
                   <FuncionarioCard />
                 </Box>
               </Grid>
@@ -404,6 +495,90 @@ const AprendizHomePage = () => {
           </TabPanel>
         </Box>
       </Box>
+
+      {/* Overlay Tutorial */}
+      {tutorialMode && (
+        <>
+          {/* Capa oscura */}
+          <Box
+            sx={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: 1000,
+            }}
+            onClick={() => setTutorialMode(false)}
+          />
+
+          {/* Ventana de tutorial */}
+          <Box
+            sx={{
+              position: 'fixed',
+              ...tutorialSteps[currentTutorialStep].position,
+              transform: 'translate(-50%, -50%)',
+              zIndex: 1200,
+              display: 'flex',
+              flexDirection: 'column',
+              maxWidth: 350,
+              backgroundColor: 'white',
+              borderRadius: 2,
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+              p: 3,
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <Typography variant="h6" fontWeight="bold" color="#1a237e">
+                {tutorialSteps[currentTutorialStep].title}
+              </Typography>
+              <IconButton size="small" onClick={toggleTutorialMode}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
+
+            <Typography variant="body2" sx={{ mb: 2 }}>
+              {tutorialSteps[currentTutorialStep].description}
+            </Typography>
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                {`${currentTutorialStep + 1} de ${tutorialSteps.length}`}
+              </Typography>
+
+              <Button
+                variant="contained"
+                endIcon={<ArrowRightAltIcon />}
+                onClick={handleNextTutorialStep}
+                sx={{
+                  backgroundColor: '#1a237e',
+                  '&:hover': {
+                    backgroundColor: '#0d1642',
+                  },
+                }}
+              >
+                {currentTutorialStep === tutorialSteps.length - 1 ? 'Finalizar' : 'Siguiente'}
+              </Button>
+            </Box>
+
+            {/* Flecha apuntando al elemento */}
+            <Box
+              sx={{
+                position: 'absolute',
+                width: 0,
+                height: 0,
+                borderLeft: '10px solid transparent',
+                borderRight: '10px solid transparent',
+                borderTop: '15px solid white',
+                bottom: -15,
+                left: '50%',
+                transform: 'translateX(-50%)',
+              }}
+            />
+          </Box>
+        </>
+      )}
     </Container>
   );
 };
