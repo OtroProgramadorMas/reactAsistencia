@@ -79,13 +79,19 @@ const AdminHomePage = () => {
     <>
       <Navbar />
       <div style={{ height: "64px" }} /> {/* Espacio para navbar fijo */}
-      <div style={{ display: "flex" }}>
+      <div style={{ display: "flex", width: "90%" }}>
         <Sidebar onSelect={handleSelect} />
-        <main>
-          <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-            {renderPanel()}
-          </Box>
-        </main>
+        <Box 
+          component="main" 
+          sx={{ 
+            flexGrow: 1, 
+            p: 3, 
+            width: "90%", 
+            overflowX: "auto" 
+          }}
+        >
+          {renderPanel()}
+        </Box>
       </div>
     </>
   );

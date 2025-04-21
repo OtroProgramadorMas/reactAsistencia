@@ -206,6 +206,7 @@ const PanelAdmin: React.FC = () => {
                   actions={actions}
                   pagination={{ page: 0, pageSize: 10 }}
                   enableCheckboxSelection={false}
+                  width="100%"
                 />
               </Grid2>
             </Grid2>

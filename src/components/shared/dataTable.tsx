@@ -26,7 +26,7 @@ const DinamicTable: React.FC<DinamicTableProps> = ({
     actions = [], // Por defecto, no hay acciones
     pagination = { page: 0, pageSize: 8 },
     height = 600, // Altura por defecto
-    width = "100%", // Ancho por defecto
+    width = "100vh", // Ancho por defecto
     enableCheckboxSelection = true // Habilitado por defecto
 }) => {
 
@@ -53,9 +53,12 @@ const DinamicTable: React.FC<DinamicTableProps> = ({
         : columns;
 
     return (
-        <Paper sx={{ height: 600, width: "100%" }}>
+        <Paper sx={{ 
+            height: height, 
+            width: width,
+            overflow: 'auto' }}>
             <DataGrid
-                sx={{border: 0,}}
+                sx={{border: 0}}
                 rows={rows}
                 columns={columnasFinales}
                 localeText={esES.components.MuiDataGrid.defaultProps.localeText}

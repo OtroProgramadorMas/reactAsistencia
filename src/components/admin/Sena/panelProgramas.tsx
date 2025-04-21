@@ -218,7 +218,7 @@ const ProgramasPanel: React.FC = () => {
   ];
 
   return (
-    <Box sx={{ p: 4 }}>
+    <Box sx={{ width: "100%", p: 4 }}>
       <Box display="flex" justifyContent="space-between" mb={2}>
         <Typography variant="h5">Programas registrados</Typography>
         <Button variant="contained" onClick={() => handleOpenDialog()}>
@@ -236,6 +236,7 @@ const ProgramasPanel: React.FC = () => {
         rows={programas}
         columns={columns}
         pagination={{ page: 0, pageSize: 8 }}
+        width={"100%"}
       />
 
       <Dialog open={openDialog} onClose={handleCloseDialog}>
