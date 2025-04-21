@@ -1,3 +1,4 @@
+// Actualización para panelFichas.tsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -14,15 +15,20 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  SelectChangeEvent
+  SelectChangeEvent,
+  IconButton,
+  Tooltip
 } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import PeopleIcon from "@mui/icons-material/People";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import PersonIcon from '@mui/icons-material/Person';
+import AddIcon from "@mui/icons-material/Add";
 import { GridColDef } from "@mui/x-data-grid";
 import DinamicTable from "../../shared/dataTable";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import CustomSnackbar from "../../shared/customSnackbar";
 import useSnackbar from "../../shared/useSnackbar";
+import HierarchyNavigation from "../../shared/Animation/HierarchyNavigation";
 
 // Interfaz adaptada a la estructura real
 interface Ficha {
@@ -47,6 +53,7 @@ interface FichasPanelProps {
 
 const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [fichas, setFichas] = useState<Ficha[]>([]);
   const [estadosFicha, setEstadosFicha] = useState<EstadoFicha[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,8 +68,24 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
     estado_ficha_idestado_ficha: 1 // Valor por defecto
   });
 
+  // Estado para la animación
+  const [showAnimation, setShowAnimation] = useState(false);
+
+  // Extraer datos adicionales del estado si están disponibles
+  const stateData = location.state || {};
+  const nombreProgramaFromState = stateData.nombrePrograma || nombrePrograma;
+
   // Usamos nuestro hook personalizado para el Snackbar
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
+
+  useEffect(() => {
+    // Activamos la animación después de un breve delay
+    const timer = setTimeout(() => {
+      setShowAnimation(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const fetchEstadosFicha = async () => {
     const token = localStorage.getItem("token");
@@ -129,30 +152,15 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
     }
   };
 
-  const handleVolver = () => {
-    // Modificado: Navegar directamente a la ruta de programas en lugar de usar navigate(-1)
-    navigate(-1);
-  };
-
-
-  // const handleVerAprendices = (ficha: Ficha) => {
-  //   const codigo_ficha = ficha.codigo_ficha || "sin-codigo";
-
-  //   console.log("Navegando a aprendices simplificado");
-  //   // Prueba primero solo con el ID sin query params
-  //   navigate(`/admin/aprendices/${ficha.idficha}?codigo=${codigo_ficha}&programa=${nombrePrograma}`);
-
-  // };
-
   const handleVerAprendices = (ficha: Ficha) => {
     const codigoFicha = ficha.codigo_ficha || "sin-codigo";
-    const nombrePrograma = programaId || "Programa sin nombre";
 
-    console.log("Navegando a aprendices con datos completos");
+    // Navegar con información para la animación
     navigate(`/admin/aprendices/${ficha.idficha}`, {
       state: {
         codigoFicha: codigoFicha,
-        nombrePrograma: nombrePrograma
+        nombrePrograma: nombreProgramaFromState,
+        programaId: programaId
       }
     });
   };
@@ -300,54 +308,53 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
     {
       field: "acciones",
       headerName: "Acciones",
-      width: 300,
+      width: 150,
+      sortable: false,
       renderCell: (params) => (
         <Box display="flex" gap={1}>
-          <Button
-            variant="contained"
-            size="small"
-            color="primary"
-            startIcon={<PeopleIcon />}
-            onClick={() => handleVerAprendices(params.row)}
-          >
-            Aprendices
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => handleOpenDialog(true, params.row)}
-          >
-            Editar
-          </Button>
-          <Button
-            variant="outlined"
-            color="error"
-            size="small"
-            onClick={() => handleEliminar(params.row.idficha)}
-          >
-            Eliminar
-          </Button>
+          <Tooltip title="Ver Aprendices">
+            <IconButton
+              color="primary"
+              onClick={() => handleVerAprendices(params.row)}
+            >
+              <PersonIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Editar Ficha">
+            <IconButton
+              color="default"
+              onClick={() => handleOpenDialog(true, params.row)}
+            >
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Eliminar Ficha">
+            <IconButton
+              color="error"
+              onClick={() => handleEliminar(params.row.idficha)}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
-      ),
-    },
+      )
+    }
   ];
 
   return (
     <Paper elevation={3} sx={{ p: 3 }}>
-      <Box display="flex" alignItems="center" mb={3}>
-        <Button
-          variant="outlined"
-          startIcon={<ArrowBackIcon />}
-          onClick={handleVolver}
-          sx={{ mr: 2 }}
-        >
-          Volver a Programas
-        </Button>
-      </Box>
+      {/* Componente de navegación jerárquica */}
+      <HierarchyNavigation
+        currentLevel="ficha"
+        programaId={programaId || undefined}
+        programaNombre={nombreProgramaFromState}
+        fichaNumero="Fichas"
+        transitionIn={showAnimation}
+      />
 
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Fichas del Programa: {nombrePrograma}
+          Gestion de Fichas
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
           ID del programa: {programaId}
@@ -356,7 +363,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
 
       <Box display="flex" justifyContent="space-between" mb={3}>
         <Typography variant="h6">Fichas registradas</Typography>
-        <Button variant="contained" onClick={() => handleOpenDialog()}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
           Agregar nueva ficha
         </Button>
       </Box>
@@ -370,6 +377,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
           rows={fichas}
           columns={columns}
           pagination={{ page: 0, pageSize: 10 }}
+          width={"100%"}
         />
       )}
 

@@ -1,3 +1,4 @@
+// Mejorado estéticamente
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DinamicTable from "../../shared/dataTable";
@@ -10,12 +11,22 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Paper,
+  IconButton, 
+  Tooltip
 } from "@mui/material";
+
+
+import ClassIcon from "@mui/icons-material/Class";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
+
 import { GridColDef } from "@mui/x-data-grid";
 import CustomSnackbar from "../../shared/customSnackbar";
 import useSnackbar from "../../shared/useSnackbar";
+import HierarchyNavigation from "../../shared/Animation/HierarchyNavigation";
 
-// Definimos el tipo del programa
 interface Programa {
   idprograma: number;
   codigo_programa: string;
@@ -34,23 +45,22 @@ const ProgramasPanel: React.FC = () => {
     codigo_programa: "",
     nombre_programa: "",
   });
-  
-  // Usamos nuestro hook personalizado para el Snackbar
+
+  const [showAnimation, setShowAnimation] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowAnimation(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const fetchProgramas = async () => {
     const token = localStorage.getItem("token");
-
     try {
       const res = await fetch("http://localhost:8000/programas", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       const data = await res.json();
-      console.log("Respuesta del servidor:", data);
-
       if (data.success && Array.isArray(data.programas)) {
         const dataConIds = data.programas.map((p: Programa) => ({
           ...p,
@@ -58,15 +68,17 @@ const ProgramasPanel: React.FC = () => {
         }));
         setProgramas(dataConIds);
       } else {
-        setMensaje("No se pudieron cargar los programas.");
         showSnackbar("No se pudieron cargar los programas.", "error");
       }
     } catch (err) {
       console.error("Error en fetchProgramas:", err);
-      setMensaje("Error al conectar con el servidor.");
       showSnackbar("Error al conectar con el servidor.", "error");
     }
   };
+
+  useEffect(() => {
+    fetchProgramas();
+  }, []);
 
   const handleOpenDialog = (editar = false, programa?: Programa) => {
     if (editar && programa) {
@@ -92,16 +104,11 @@ const ProgramasPanel: React.FC = () => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNuevoPrograma({
-      ...nuevoPrograma,
-      [e.target.name]: e.target.value,
-    });
+    setNuevoPrograma({ ...nuevoPrograma, [e.target.name]: e.target.value });
   };
 
   const handleGuardarPrograma = async () => {
     const token = localStorage.getItem("token");
-
-    // Validaciones básicas
     if (!nuevoPrograma.codigo_programa.trim() || !nuevoPrograma.nombre_programa.trim()) {
       showSnackbar("Todos los campos son obligatorios", "error");
       return;
@@ -110,8 +117,6 @@ const ProgramasPanel: React.FC = () => {
     try {
       let url = "http://localhost:8000/programas";
       let method = "POST";
-
-      // Si estamos editando, cambiamos la URL y el método
       if (editando && programaActual) {
         url = `http://localhost:8000/programas/${programaActual}`;
         method = "PUT";
@@ -128,17 +133,11 @@ const ProgramasPanel: React.FC = () => {
 
       const result = await res.json();
       if (result.success) {
-        showSnackbar(
-          editando ? "Programa actualizado exitosamente" : "Programa creado exitosamente",
-          "success"
-        );
-        fetchProgramas(); // recarga tabla
-        handleCloseDialog(); // cierra formulario
+        showSnackbar(editando ? "Programa actualizado" : "Programa creado", "success");
+        fetchProgramas();
+        handleCloseDialog();
       } else {
-        showSnackbar(
-          result.msg || "Error al guardar el programa",
-          "error"
-        );
+        showSnackbar(result.msg || "Error al guardar el programa", "error");
       }
     } catch (err) {
       console.error("Error al guardar programa:", err);
@@ -148,19 +147,16 @@ const ProgramasPanel: React.FC = () => {
 
   const handleEliminar = async (idprograma: number) => {
     const token = localStorage.getItem("token");
-    if (!window.confirm("¿Estás seguro de que deseas eliminar este programa?")) return;
+    if (!window.confirm("¿Deseas eliminar este programa?")) return;
 
     try {
       const res = await fetch(`http://localhost:8000/programas/${idprograma}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       const data = await res.json();
       if (data.success) {
-        showSnackbar("Programa eliminado exitosamente", "success");
+        showSnackbar("Programa eliminado", "success");
         fetchProgramas();
       } else {
         showSnackbar(data.msg || "No se pudo eliminar el programa", "error");
@@ -170,15 +166,15 @@ const ProgramasPanel: React.FC = () => {
       showSnackbar("Error al conectar con el servidor", "error");
     }
   };
-  
-  const handleAgregarFicha = (programa: Programa) => {
-    console.log("Agregar ficha para programa:", programa);
-    navigate(`/admin/fichas/${programa.idprograma}?nombre=${encodeURIComponent(programa.nombre_programa)}&codigo=${encodeURIComponent(programa.codigo_programa)}`);
-  };
 
-  useEffect(() => {
-    fetchProgramas();
-  }, []);
+  const handleAgregarFicha = (programa: Programa) => {
+    navigate(`/admin/fichas/${programa.idprograma}`, {
+      state: {
+        nombrePrograma: programa.nombre_programa,
+        codigoPrograma: programa.codigo_programa,
+      },
+    });
+  };
 
   const columns: GridColDef[] = [
     { field: "idprograma", headerName: "ID", width: 100 },
@@ -188,75 +184,83 @@ const ProgramasPanel: React.FC = () => {
       field: "acciones",
       headerName: "Acciones",
       width: 300,
+      sortable: false,
       renderCell: (params) => (
         <Box display="flex" gap={1}>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={() => handleAgregarFicha(params.row)}
-          >
-            Ficha
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => handleOpenDialog(true, params.row)}
-          >
-            Editar
-          </Button>
-          <Button
-            variant="outlined"
-            color="error"
-            size="small"
-            onClick={() => handleEliminar(params.row.idprograma)}
-          >
-            Eliminar
-          </Button>
+          <Tooltip title="Agregar Ficha">
+            <IconButton color="primary" onClick={() => handleAgregarFicha(params.row)}>
+              <ClassIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Editar">
+            <IconButton color="default" onClick={() => handleOpenDialog(true, params.row)}>
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Eliminar">
+            <IconButton color="error" onClick={() => handleEliminar(params.row.idprograma)}>
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
-      ),
+      )
     },
   ];
 
   return (
-    <Box sx={{ width: "100%", p: 4 }}>
-      <Box display="flex" justifyContent="space-between" mb={2}>
-        <Typography variant="h5">Programas registrados</Typography>
-        <Button variant="contained" onClick={() => handleOpenDialog()}>
-          Agregar programa
-        </Button>
-      </Box>
+    <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 3 }}>
+      <Paper
+        elevation={3}
+        sx={{
+          p: 4,
+          borderRadius: 3,
+        }}
+      >
+        <HierarchyNavigation currentLevel="programa" transitionIn={showAnimation} />
 
-      {mensaje && (
-        <Typography color="error" mb={2}>
-          {mensaje}
-        </Typography>
-      )}
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h4">Gestión de Programas</Typography>
+          <Button variant="contained" startIcon={<AddIcon />}  onClick={() => handleOpenDialog()}>
+            Agregar programa
+          </Button>
+        </Box>
 
-      <DinamicTable
-        rows={programas}
-        columns={columns}
-        pagination={{ page: 0, pageSize: 8 }}
-        width={"100%"}
-      />
+        {mensaje && (
+          <Typography color="error" mb={2}>
+            {mensaje}
+          </Typography>
+        )}
 
-      <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>{editando ? "Editar programa" : "Agregar nuevo programa"}</DialogTitle>
-        <DialogContent>
+        <DinamicTable
+          rows={programas}
+          columns={columns}
+          pagination={{ page: 0, pageSize: 8 }}
+          width={"100%"}
+          height={500}
+          enableCheckboxSelection={false}
+        />
+      </Paper>
+
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: "bold" }}>
+          {editando ? "Editar Programa" : "Agregar Programa"}
+        </DialogTitle>
+        <DialogContent dividers>
           <TextField
-            margin="dense"
-            label="Código del programa"
+            label="Código del Programa"
             name="codigo_programa"
             fullWidth
             value={nuevoPrograma.codigo_programa}
             onChange={handleChange}
+            margin="dense"
           />
           <TextField
-            margin="dense"
-            label="Nombre del programa"
+            label="Nombre del Programa"
             name="nombre_programa"
             fullWidth
             value={nuevoPrograma.nombre_programa}
             onChange={handleChange}
+            margin="dense"
           />
         </DialogContent>
         <DialogActions>
@@ -267,11 +271,7 @@ const ProgramasPanel: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Nuestro componente Snackbar reutilizable */}
-      <CustomSnackbar 
-        snackbar={snackbar} 
-        handleClose={closeSnackbar} 
-      />
+      <CustomSnackbar snackbar={snackbar} handleClose={closeSnackbar} />
     </Box>
   );
 };

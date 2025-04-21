@@ -1,3 +1,4 @@
+// src/pages/AdminHomePage.tsx
 import { Box, Typography } from "@mui/material";
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "react-router-dom";
@@ -9,85 +10,128 @@ import AdminPanel from "../../components/admin/Funcionarios/panelFuncionarios";
 import ProgramasPanel from "../../components/admin/Sena/panelProgramas";
 import FichasPanel from "../../components/admin/Sena/panelFichas";
 import PanelAprendiz from "../../components/admin/Sena/panelAprendiz";
+import PageTransition from "../../components/shared/Animation/PageTransition";
 
 const AdminHomePage = () => {
-  // Verificamos si hay una opción guardada en localStorage
   const initialOption = localStorage.getItem('adminPanel') || "Principal";
   const [selectedOption, setSelectedOption] = useState(initialOption);
   const location = useLocation();
-  const params = useParams(); // Obtenemos los parámetros de la ruta
+  const params = useParams();
   
-  // Verificamos si estamos en la ruta de fichas o aprendices usando params
+  // Estado para controlar la dirección de la transición
+  const [transitionDirection, setTransitionDirection] = useState<'left' | 'right'>('right');
+  
+  // Estado para controlar la transición entre vistas
+  const [transitionKey, setTransitionKey] = useState<string>('');
+
   const isFichasRoute = location.pathname.includes('/fichas/');
   const isAprendicesRoute = location.pathname.includes('/aprendices/');
-  const id = params.id; // ID del programa o ficha según la ruta
-  
-  // Extraer parámetros de consulta
+  const id = params.id;
+
   const searchParams = new URLSearchParams(location.search);
   const nombrePrograma = searchParams.get('nombre') || searchParams.get('programa') || '';
   const codigoFicha = searchParams.get('codigo') || 'sin-codigo';
   
-  // Si cambia la ruta, actualizamos el estado según corresponda
+  // Efecto para actualizar la key de transición cuando cambia la ruta o la opción seleccionada
+  useEffect(() => {
+    if (isFichasRoute) {
+      setTransitionKey(`fichas-${id}`);
+      setTransitionDirection('left');
+    } else if (isAprendicesRoute) {
+      setTransitionKey(`aprendices-${id}`);
+      setTransitionDirection('left');
+    } else {
+      setTransitionKey(`panel-${selectedOption}`);
+      setTransitionDirection('right');
+    }
+  }, [isFichasRoute, isAprendicesRoute, id, selectedOption]);
+
   useEffect(() => {
     if (!isFichasRoute && !isAprendicesRoute) {
-      // Si regresamos a la página principal, verificamos si tenemos una selección guardada
       if (location.pathname === '/admin') {
         const savedOption = localStorage.getItem('adminPanel');
         if (savedOption) {
           setSelectedOption(savedOption);
-          // Limpiamos el localStorage después de usarlo
           localStorage.removeItem('adminPanel');
         }
       }
     }
   }, [location.pathname, isFichasRoute, isAprendicesRoute]);
 
-  // Actualizamos la función de selección para que también guarde en localStorage
   const handleSelect = (option: string) => {
+    // Determinar la dirección de la transición basada en el cambio de nivel
+    const currentLevel = isFichasRoute ? 'ficha' : isAprendicesRoute ? 'aprendiz' : 'programa';
+    const goingToLevel = option === 'Organizacion' ? 'programa' : 'otro';
+    
+    if (currentLevel === 'ficha' || currentLevel === 'aprendiz') {
+      setTransitionDirection('right');
+    } else {
+      setTransitionDirection('left');
+    }
+    
     setSelectedOption(option);
-    // Opcional: guardar en localStorage para mantener la selección en navegaciones futuras
     localStorage.setItem('adminPanel', option);
   };
 
   const renderPanel = () => {
-    // Si estamos en la ruta de fichas, mostramos ese panel independientemente de la opción seleccionada
     if (isFichasRoute && id) {
-      return <FichasPanel programaId={id} nombrePrograma={nombrePrograma} />;
-    }
-    
-    // Si estamos en la ruta de aprendices, mostramos ese panel
-    if (isAprendicesRoute && id) {
-      return <PanelAprendiz fichaId={id} codigoFicha={codigoFicha} nombrePrograma={nombrePrograma} />;
+      return (
+        <PageTransition key={`fichas-${id}`} direction={transitionDirection}>
+          <FichasPanel programaId={id} nombrePrograma={nombrePrograma} />
+        </PageTransition>
+      );
     }
 
-    // Si no, mostramos el panel correspondiente a la opción seleccionada
+    if (isAprendicesRoute && id) {
+      return (
+        <PageTransition key={`aprendices-${id}`} direction={transitionDirection}>
+          <PanelAprendiz fichaId={id} codigoFicha={codigoFicha} nombrePrograma={nombrePrograma} />
+        </PageTransition>
+      );
+    }
+
     switch (selectedOption) {
       case "Principal":
-        return <PanelPrincipal />;
-      case "Instructor":
-        return <Typography variant="h4">Panel de Instructor</Typography>;
-      case "Administrador":
-        return <AdminPanel />;
-      case "Programa":
-        return <ProgramasPanel />;
+        return (
+          <PageTransition key="panel-principal" direction={transitionDirection}>
+            <PanelPrincipal />
+          </PageTransition>
+        );
+      case "Funcionario":
+        return (
+          <PageTransition key="panel-funcionario" direction={transitionDirection}>
+            <AdminPanel />
+          </PageTransition>
+        );
+      case "Organizacion":
+        return (
+          <PageTransition key="panel-organizacion" direction={transitionDirection}>
+            <ProgramasPanel />
+          </PageTransition>
+        );
       default:
-        return <Typography variant="h4">Seleccione una opción</Typography>;
+        return (
+          <PageTransition key="panel-default" direction={transitionDirection}>
+            <Typography variant="h4">Seleccione una opción</Typography>
+          </PageTransition>
+        );
     }
   };
 
   return (
     <>
       <Navbar />
-      <div style={{ height: "64px" }} /> {/* Espacio para navbar fijo */}
-      <div style={{ display: "flex", width: "90%" }}>
+      <div style={{ height: "64px" }} />
+      <div style={{ display: "flex", width: "100%" }}>
         <Sidebar onSelect={handleSelect} />
         <Box 
           component="main" 
           sx={{ 
             flexGrow: 1, 
             p: 3, 
-            width: "90%", 
-            overflowX: "auto" 
+            width: "100%", 
+            overflowX: "auto",
+            overflowY: "hidden" // Importante para las animaciones
           }}
         >
           {renderPanel()}

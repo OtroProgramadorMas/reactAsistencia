@@ -1,11 +1,11 @@
 // src/pages/AprendizPage.tsx
 import React, { useEffect, useState } from 'react';
-import { 
-  Container, 
-  Typography, 
-  Box, 
-  CircularProgress, 
-  Card, 
+import {
+  Container,
+  Typography,
+  Box,
+  CircularProgress,
+  Card,
   Chip,
   Grid,
   Tabs,
@@ -13,8 +13,8 @@ import {
   CardContent,
   Alert
 } from '@mui/material';
-import { 
-  CalendarToday as CalendarIcon, 
+import {
+  CalendarToday as CalendarIcon,
   Person as PersonIcon,
   Email as EmailIcon,
   Phone as PhoneIcon,
@@ -102,20 +102,20 @@ const AprendizHomePage = () => {
   const [fichaData, setFichaData] = useState<FichaData | null>(null);
   const [asistencias, setAsistencias] = useState<AsistenciaData[]>([]);
   const [tabValue, setTabValue] = useState(0);
-  
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Obtener el ID del localStorage
         const id = localStorage.getItem('id');
         const token = localStorage.getItem('token');
-        
+
         if (!id || !token) {
           setError('No se encontró información de autenticación');
           setLoading(false);
           return;
         }
-        
+
         // Hacer la petición para obtener datos del aprendiz
         const aprendizResponse = await fetch(`http://localhost:8000/aprendiz/${id}`, {
           method: 'GET',
@@ -124,12 +124,12 @@ const AprendizHomePage = () => {
             'Authorization': `Bearer ${token}`
           }
         });
-        
+
         // Procesar respuesta del aprendiz
         if (aprendizResponse.ok) {
           const aprendizResData = await aprendizResponse.json();
           const aprendizFromServer = aprendizResData.aprendiz || aprendizResData;
-          
+
           // Mapear los datos del servidor al formato esperado por el componente
           setAprendizData({
             idAprendiz: aprendizFromServer.idaprendiz,
@@ -143,7 +143,7 @@ const AprendizHomePage = () => {
             fichaId: aprendizFromServer.ficha_idficha || 0,
             programa: aprendizFromServer.nombre_programa || ''
           });
-          
+
           // Una vez que tenemos la ficha, obtener sus datos
           const fichaId = aprendizFromServer.ficha_idficha;
           if (fichaId) {
@@ -154,13 +154,13 @@ const AprendizHomePage = () => {
                 'Authorization': `Bearer ${token}`
               }
             });
-            
+
             if (fichaResponse.ok) {
               const fichaResData = await fichaResponse.json();
               setFichaData(fichaResData.ficha);
             }
           }
-          
+
           // Obtener asistencias
           const asistenciasResponse = await fetch(`http://localhost:8000/asistencia/aprendiz/${id}`, {
             method: 'GET',
@@ -169,7 +169,7 @@ const AprendizHomePage = () => {
               'Authorization': `Bearer ${token}`
             }
           });
-          
+
           if (asistenciasResponse.ok) {
             const asistenciasResData = await asistenciasResponse.json();
             setAsistencias(asistenciasResData.asistencias || []);
@@ -185,20 +185,20 @@ const AprendizHomePage = () => {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
-  
+
   // Manejador de cambio de tabs
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
-    
+
     // Si el usuario selecciona la pestaña "Salir", cerramos sesión
     if (newValue === 2) {
       handleLogout();
     }
   };
-  
+
   // Función para cerrar sesión
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -206,7 +206,7 @@ const AprendizHomePage = () => {
     localStorage.removeItem('userData');
     navigate('/login');
   };
-  
+
   // Mostrar estados de carga o error
   if (loading) {
     return (
@@ -217,7 +217,7 @@ const AprendizHomePage = () => {
       </Container>
     );
   }
-  
+
   if (error) {
     return (
       <Container maxWidth="md">
@@ -229,9 +229,19 @@ const AprendizHomePage = () => {
       </Container>
     );
   }
-  
+
   // Formatear la fecha
   const formatDate = (dateString: string) => {
+    // Extraer solo la parte de la fecha (ignorar la hora)
+    const datePart = dateString.split('T')[0];
+
+    // Si la fecha tiene formato ISO (YYYY-MM-DD)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+      const [year, month, day] = datePart.split('-');
+      return `${day}/${month}/${year}`;
+    }
+
+    // Si no podemos procesar el formato, devolver la fecha con el método actual
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('es-ES', {
       day: '2-digit',
@@ -239,7 +249,7 @@ const AprendizHomePage = () => {
       year: 'numeric'
     }).format(date);
   };
-  
+
   // Obtener color según tipo de asistencia
   const getAsistenciaColor = (tipo: string) => {
     switch (tipo.toLowerCase()) {
@@ -267,7 +277,7 @@ const AprendizHomePage = () => {
         return null;
     }
   };
-  
+
   // Preparar los datos para el DataTable (solo fecha y estado)
   const asistenciasRows = asistencias.map((asistencia) => ({
     id: asistencia.idasistencia,
@@ -277,17 +287,17 @@ const AprendizHomePage = () => {
 
   // Definir las columnas para el DataTable (solo fecha y estado)
   const asistenciasColumns: GridColDef[] = [
-    { 
-      field: 'fecha', 
-      headerName: 'Fecha', 
-      width: 150 
+    {
+      field: 'fecha',
+      headerName: 'Fecha',
+      width: 150
     },
-    { 
-      field: 'estado', 
-      headerName: 'Estado', 
+    {
+      field: 'estado',
+      headerName: 'Estado',
       width: 200,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip 
+        <Chip
           icon={getAsistenciaIcon(params.value as string)}
           label={params.value}
           color={getAsistenciaColor(params.value as string)}
@@ -296,16 +306,16 @@ const AprendizHomePage = () => {
       )
     }
   ];
-  
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ my: 4 }}>
         {/* Header con nombre (simplificado) */}
         <Card sx={{ mb: 4, boxShadow: 3, borderRadius: 2, overflow: 'hidden' }}>
-          <Box 
-            sx={{ 
-              p: 3, 
-              bgcolor: 'primary.main', 
+          <Box
+            sx={{
+              p: 3,
+              bgcolor: 'primary.main',
               color: 'white',
               display: 'flex',
               justifyContent: 'space-between',
@@ -319,40 +329,40 @@ const AprendizHomePage = () => {
             </Box>
           </Box>
         </Card>
-        
+
         {/* Sistema de pestañas */}
         <Box sx={{ width: '100%', mb: 2 }}>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs 
-              value={tabValue} 
-              onChange={handleTabChange} 
+            <Tabs
+              value={tabValue}
+              onChange={handleTabChange}
               aria-label="pestañas de navegación"
               variant="fullWidth"
               textColor="primary"
               indicatorColor="primary"
             >
-              <Tab 
-                icon={<PersonIcon />} 
-                label="Información" 
-                id="tab-0" 
-                aria-controls="tabpanel-0" 
+              <Tab
+                icon={<PersonIcon />}
+                label="Información"
+                id="tab-0"
+                aria-controls="tabpanel-0"
               />
-              <Tab 
-                icon={<CalendarIcon />} 
-                label="Asistencias" 
-                id="tab-1" 
-                aria-controls="tabpanel-1" 
+              <Tab
+                icon={<CalendarIcon />}
+                label="Asistencias"
+                id="tab-1"
+                aria-controls="tabpanel-1"
               />
-              <Tab 
-                icon={<ExitToAppIcon />} 
-                label="Cerrar Sesión" 
-                id="tab-2" 
+              <Tab
+                icon={<ExitToAppIcon />}
+                label="Cerrar Sesión"
+                id="tab-2"
                 aria-controls="tabpanel-2"
-                sx={{ color: 'error.main' }} 
+                sx={{ color: 'error.main' }}
               />
             </Tabs>
           </Box>
-          
+
           {/* Contenido de la pestaña "Información" */}
           <TabPanel value={tabValue} index={0}>
             <Grid container spacing={3}>
@@ -397,37 +407,37 @@ const AprendizHomePage = () => {
                   </CardContent>
                 </Card>
               </Grid>
-              
+
               {/* Información de la Ficha */}
               <Grid item xs={12} md={4}>
                 <Box sx={{ height: '100%' }}>
-                  {aprendizData && 
-                    <FichaPaper 
-                      fichaId={aprendizData.fichaId} 
-                      maxWidth="100%" 
-                      maxHeight="100%" 
+                  {aprendizData &&
+                    <FichaPaper
+                      fichaId={aprendizData.fichaId}
+                      maxWidth="100%"
+                      maxHeight="100%"
                       showTitle={true}
                     />
                   }
                 </Box>
               </Grid>
-              
+
               {/* Información del Funcionario */}
               <Grid item xs={12} md={4}>
                 <Box sx={{ height: '100%' }}>
                   {fichaData && fichaData.funcionario_idfuncionario && (
-                    <FuncionarioCard 
-                      funcionarioId={fichaData.funcionario_idfuncionario} 
-                      maxWidth="100%" 
+                    <FuncionarioCard
+                      funcionarioId={fichaData.funcionario_idfuncionario}
+                      maxWidth="100%"
                       maxHeight="100%"
-                      showTitle={true} 
+                      showTitle={true}
                     />
                   )}
                 </Box>
               </Grid>
             </Grid>
           </TabPanel>
-          
+
           {/* Contenido de la pestaña "Asistencias" */}
           <TabPanel value={tabValue} index={1}>
             <Card sx={{ boxShadow: 3, borderRadius: 2 }}>
@@ -436,7 +446,7 @@ const AprendizHomePage = () => {
                   Historial de Asistencias
                 </Typography>
               </Box>
-              
+
               <Box sx={{ p: 2 }}>
                 {asistencias.length > 0 ? (
                   <DinamicTable
@@ -457,7 +467,7 @@ const AprendizHomePage = () => {
               </Box>
             </Card>
           </TabPanel>
-          
+
           {/* No necesitamos contenido para la pestaña "Cerrar Sesión" porque se ejecuta automáticamente */}
           <TabPanel value={tabValue} index={2}>
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>

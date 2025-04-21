@@ -1,3 +1,4 @@
+// Actualización para panelAprendiz.tsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -9,18 +10,20 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions
+  DialogActions,
+  IconButton,
+  Tooltip
 } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import DinamicTable from "../../shared/dataTable";
 import CustomSnackbar from "../../shared/customSnackbar";
 import useSnackbar from "../../shared/useSnackbar";
 import FormularioAprendiz from "./FormularioAprendiz ";
+import HierarchyNavigation from "../../shared/Animation/HierarchyNavigation";
 
 // Interfaz del aprendiz, adaptada según el modelo
 interface Aprendiz {
@@ -36,6 +39,8 @@ interface Aprendiz {
   tipo_documento_idtipo_documento: number;
   nombre_estado_aprendiz?: string;
   tipo_documento?: string;
+  abreviatura_tipo_documento?: string;
+  estado_aprendiz: string;
   id?: number; // para DataGrid
 }
 
@@ -47,6 +52,7 @@ interface AprendizPanelProps {
 
 const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nombrePrograma }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [aprendices, setAprendices] = useState<Aprendiz[]>([]);
   const [loading, setLoading] = useState(true);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
@@ -56,6 +62,24 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
     open: false, 
     id: null
   });
+  
+  // Estado para la animación
+  const [showAnimation, setShowAnimation] = useState(false);
+  
+  // Extraemos datos del estado de navegación si están disponibles
+  const stateData = location.state || {};
+  const nombreProgramaFromState = stateData.nombrePrograma || nombrePrograma || "";
+  const codigoFichaFromState = stateData.codigoFicha || codigoFicha || "";
+  const programaIdFromState = stateData.programaId || "";
+  
+  useEffect(() => {
+    // Activamos la animación después de un breve delay
+    const timer = setTimeout(() => {
+      setShowAnimation(true);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const fetchAprendices = async () => {
     const token = localStorage.getItem("token");
@@ -73,7 +97,8 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
       if (data.success && Array.isArray(data.aprendices)) {
         const aprendicesConId = data.aprendices.map((a: any) => ({
           ...a,
-          id: a.idaprendiz // Asignamos el ID para DataGrid
+          id: a.idaprendiz, // Asignamos el ID para DataGrid
+          estado_aprendiz: a.estado_aprendiz // 👈 Añadido aquí
         }));
         setAprendices(aprendicesConId);
       } else {
@@ -85,10 +110,6 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleVolver = () => {
-    navigate(-1);
   };
 
   const handleAbrirFormulario = (aprendiz?: Aprendiz) => {
@@ -146,62 +167,70 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
     fetchAprendices();
   }, [fichaId]);
 
+  const rowsForTable = aprendices.map(aprendiz => ({
+    id: aprendiz.idaprendiz,
+    nombre: `${aprendiz.nombres_aprendiz} ${aprendiz.apellidos_aprendiz}`,
+    documento: `${aprendiz.abreviatura_tipo_documento} ${aprendiz.documento_aprendiz}`,
+    telefono: aprendiz.telefono_aprendiz,
+    email: aprendiz.email_aprendiz,
+    estado: aprendiz.estado_aprendiz
+  }));
+  
+
   const columns: GridColDef[] = [
-    { field: "idaprendiz", headerName: "ID", width: 70 },
-    { field: "documento_aprendiz", headerName: "Documento", width: 130 },
-    { field: "nombres_aprendiz", headerName: "Nombres", width: 150 },
-    { field: "apellidos_aprendiz", headerName: "Apellidos", width: 150 },
-    { field: "telefono_aprendiz", headerName: "Teléfono", width: 130 },
-    { field: "email_aprendiz", headerName: "Correo", width: 200 },
-    { field: "nombre_estado_aprendiz", headerName: "Estado", width: 120 },
+    { field: "id", headerName: "ID", width: 70 },
+    { field: "nombre", headerName: "Nombre Completo", width: 200 },
+    { field: "documento", headerName: "Documento", width: 160 },
+    { field: "telefono", headerName: "Teléfono", width: 130 },
+    { field: "email", headerName: "Correo", width: 200 },
+    { field: "estado", headerName: "Estado", width: 120 },
     {
       field: "acciones",
       headerName: "Acciones",
-      width: 150,
+      width: 180,
       renderCell: (params: GridRenderCellParams) => (
         <Box display="flex" gap={1}>
-          <Button
-            variant="outlined"
-            size="small"
-            color="primary"
-            startIcon={<EditIcon />}
-            onClick={() => handleAbrirFormulario(params.row as Aprendiz)}
-          >
-            Editar
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            color="error"
-            startIcon={<DeleteIcon />}
-            onClick={() => handleEliminarAprendiz(params.row.idaprendiz)}
-          >
-            Eliminar
-          </Button>
+          <Tooltip title="Editar Aprendiz">
+            <IconButton
+              color="primary"
+              onClick={() => handleAbrirFormulario(params.row)}
+            >
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Eliminar Aprendiz">
+            <IconButton
+              color="error"
+              onClick={() => handleEliminarAprendiz(params.row.id)}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
       ),
+      
     },
   ];
+  
 
   return (
     <Paper elevation={3} sx={{ p: 3 }}>
-      <Box display="flex" alignItems="center" mb={3}>
-        <Button
-          variant="outlined"
-          startIcon={<ArrowBackIcon />}
-          onClick={handleVolver}
-          sx={{ mr: 2 }}
-        >
-          Volver
-        </Button>
-      </Box>
+      {/* Componente de navegación jerárquica */}
+      <HierarchyNavigation 
+        currentLevel="aprendiz" 
+        programaId={programaIdFromState}
+        programaNombre={nombreProgramaFromState}
+        fichaId={fichaId}
+        fichaNumero={codigoFichaFromState}
+        transitionIn={showAnimation}
+      />
 
       <Box sx={{ mb: 4 }}>
         <Typography variant="h5" gutterBottom>
           Lista de Aprendices
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Ficha: {codigoFicha} - Programa: {nombrePrograma}
+          Ficha: {codigoFichaFromState} - Programa: {nombreProgramaFromState}
         </Typography>
       </Box>
 
@@ -222,9 +251,10 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
         </Box>
       ) : (
         <DinamicTable
-          rows={aprendices}
+          rows={rowsForTable}
           columns={columns}
           pagination={{ page: 0, pageSize: 10 }}
+          width={"100%"}
         />
       )}
 
