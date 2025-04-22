@@ -59,8 +59,8 @@ const aprendizVacio: Aprendiz = {
   email_aprendiz: "",
   password_aprendiz: "",
   ficha_idficha: 0,
-  estado_aprendiz_idestado_aprendiz: 1,
-  tipo_documento_idtipo_documento: 1
+  estado_aprendiz_idestado_aprendiz: 2,
+  tipo_documento_idtipo_documento: 0
 };
 
 const FormularioAprendiz: React.FC<FormularioAprendizProps> = ({
@@ -88,7 +88,7 @@ const FormularioAprendiz: React.FC<FormularioAprendizProps> = ({
         },
       });
       const data = await res.json();
-      if (data.success && Array.isArray(data.estados)) {
+      if (data.success && Array.isArray(data.data.estados_aprendiz)) {
         setEstadosAprendiz(data.estados);
       } else {
         showSnackbar("No se pudieron cargar los estados de aprendiz", "error");
@@ -110,9 +110,9 @@ const FormularioAprendiz: React.FC<FormularioAprendizProps> = ({
         },
       });
       const data = await res.json();
-      if (data.success && Array.isArray(data.tipos)) {
-        setTiposDocumento(data.tipos);
-      } else {
+      if (data.success && Array.isArray(data.tipoDocumento)) {
+        setTiposDocumento(data.tipoDocumento);
+      }       else {
         // Si no hay endpoint, usamos datos de ejemplo
         setTiposDocumento([
           { idtipo_documento: 1, tipo_documento: "Cédula de Ciudadanía" },
@@ -138,7 +138,25 @@ const FormularioAprendiz: React.FC<FormularioAprendizProps> = ({
   useEffect(() => {
     Promise.all([fetchEstadosAprendiz(), fetchTiposDocumento()]);
   }, []);
-
+  useEffect(() => {
+    if (open) {
+      if (aprendiz) {
+        setFormData({
+          ...aprendiz,
+          ficha_idficha: parseInt(fichaId)
+        });
+      } else {
+        setFormData({
+          ...aprendizVacio,
+          ficha_idficha: parseInt(fichaId),
+          estado_aprendiz_idestado_aprendiz: estadosAprendiz[0]?.idestado_aprendiz || 0,
+          tipo_documento_idtipo_documento: tiposDocumento[0]?.idtipo_documento || 0,
+        });
+      }
+    }
+  }, [open, aprendiz, fichaId, estadosAprendiz, tiposDocumento]);
+  
+  /*
   useEffect(() => {
     if (open) {
       if (aprendiz) {
@@ -155,7 +173,7 @@ const FormularioAprendiz: React.FC<FormularioAprendizProps> = ({
       }
     }
   }, [open, aprendiz, fichaId]);
-
+*/
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({
@@ -205,6 +223,7 @@ const FormularioAprendiz: React.FC<FormularioAprendizProps> = ({
   };
 
   const handleSubmit = async () => {
+
     if (!validateForm()) return;
 
     const token = localStorage.getItem("token");
@@ -216,6 +235,12 @@ const FormularioAprendiz: React.FC<FormularioAprendizProps> = ({
         : "http://localhost:8000/aprendiz";
       
       const method = isEditing ? "PUT" : "POST";
+      
+      console.log("📤 Datos enviados al backend:", {
+        url,
+        method,
+        formData,
+      });
 
       const res = await fetch(url, {
         method,
@@ -268,6 +293,22 @@ const FormularioAprendiz: React.FC<FormularioAprendizProps> = ({
               <FormControl fullWidth margin="dense">
                 <InputLabel id="tipo-documento-label">Tipo de Documento</InputLabel>
                 <Select
+  labelId="tipo-documento-label"
+  id="tipo_documento_idtipo_documento"
+  name="tipo_documento_idtipo_documento"
+  value={formData.tipo_documento_idtipo_documento || ""}
+  label="Tipo de Documento"
+  onChange={handleSelectChange}
+  disabled={tiposDocumento.length === 0}
+>
+  {tiposDocumento.map((tipo) => (
+    <MenuItem key={tipo.idtipo_documento} value={tipo.idtipo_documento}>
+      {tipo.tipo_documento}
+    </MenuItem>
+  ))}
+</Select>
+
+                {/* /*<Select
                   labelId="tipo-documento-label"
                   id="tipo_documento_idtipo_documento"
                   name="tipo_documento_idtipo_documento"
@@ -280,7 +321,7 @@ const FormularioAprendiz: React.FC<FormularioAprendizProps> = ({
                       {tipo.tipo_documento}
                     </MenuItem>
                   ))}
-                </Select>
+                </Select>*/ }
               </FormControl>
             </Grid>
             <Grid item xs={12} md={6}>
@@ -360,6 +401,21 @@ const FormularioAprendiz: React.FC<FormularioAprendizProps> = ({
             <Grid item xs={12} md={6}>
               <FormControl fullWidth margin="dense">
                 <InputLabel id="estado-aprendiz-label">Estado del Aprendiz</InputLabel>
+                {/* <Select
+  labelId="estado-aprendiz-label"
+  id="estado_aprendiz_idestado_aprendiz"
+  name="estado_aprendiz_idestado_aprendiz"
+  value={formData.estado_aprendiz_idestado_aprendiz || ""}
+  label="Estado del Aprendiz"
+  onChange={handleSelectChange}
+  disabled={estadosAprendiz.length === 0}
+>
+  {estadosAprendiz.map((estado) => (
+    <MenuItem key={estado.idestado_aprendiz} value={estado.idestado_aprendiz}>
+      {estado.estado_aprendiz}
+    </MenuItem>
+  ))}
+</Select> */}
                 <Select
                   labelId="estado-aprendiz-label"
                   id="estado_aprendiz_idestado_aprendiz"
