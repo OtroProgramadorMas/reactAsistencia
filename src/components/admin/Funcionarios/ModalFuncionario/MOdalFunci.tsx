@@ -17,9 +17,7 @@ import {
     CircularProgress,
     Alert,
     IconButton,
-    InputAdornment,
-    FormControlLabel,
-    Checkbox
+    InputAdornment
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import Visibility from "@mui/icons-material/Visibility";
@@ -102,11 +100,13 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
 
     // Estados para UI
     const [loading, setLoading] = useState<boolean>(false);
+    const [cargandoImagen, setCargandoImagen] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [isInstructor, setIsInstructor] = useState<boolean>(true); // Por defecto instructor
+    const [imagenCargada, setImagenCargada] = useState<boolean>(false);
 
     // Obtener token de autenticación
     const getToken = (): string | null => localStorage.getItem("token");
@@ -118,7 +118,7 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
             fetchRoles();
             fetchFichas();
             resetForm();
-            
+
             // Si estamos editando, preparar los datos existentes
             if (funcionario) {
                 prepararDatosEdicion();
@@ -131,12 +131,9 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
         if (roles.length === 0) return; // No hacer nada si no hay roles cargados
 
         const rolInfo = roles.find(r => r.idtipo_funcionario === rolSeleccionado);
-        
+
         // Convertir a minúsculas para comparación insensible a mayúsculas/minúsculas
         const esTipoInstructor = rolInfo?.tipo_funcionario.toLowerCase() === 'instructor';
-        console.log("Rol seleccionado:", rolSeleccionado);
-        console.log("Información del rol:", rolInfo);
-        console.log("¿Es instructor?", esTipoInstructor);
         
         setIsInstructor(esTipoInstructor);
     }, [rolSeleccionado, roles]);
@@ -159,6 +156,7 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
         setFile(null);
         setPreviewUrl(null);
         setError(null);
+        setImagenCargada(false);
     };
 
     // Preparar datos para la edición
@@ -177,8 +175,20 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
             url_imgFuncionario: funcionario.url_imgFuncionario,
             tipo_documento_idtipo_documento: funcionario.tipo_documento_idtipo_documento || 1,
         });
-        
-        setPreviewUrl(funcionario.url_imgFuncionario);
+
+        // Preparar URL de previsualización (corregido)
+        if (funcionario.url_imgFuncionario) {
+            // Si la ruta no comienza con http, debemos concatenar la URL base
+            if (!funcionario.url_imgFuncionario.startsWith('http')) {
+                setPreviewUrl(`${API_URL}${funcionario.url_imgFuncionario}`);
+            } else {
+                setPreviewUrl(funcionario.url_imgFuncionario);
+            }
+            setImagenCargada(true);
+        } else {
+            setPreviewUrl(null);
+            setImagenCargada(false);
+        }
 
         // Preparar rol (tomamos el primero si hay varios)
         if (funcionario.roles && funcionario.roles.length > 0) {
@@ -186,9 +196,23 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
         }
 
         // Preparar ficha (tomamos la primera si hay varias)
-        if (funcionario.roles?.some((r: any) => r.tipo_funcionario.toLowerCase() === 'instructor') && 
-            funcionario.fichas && funcionario.fichas.length > 0) {
-            setFichaSeleccionada(funcionario.fichas[0].idficha);
+        if (funcionario.fichas && funcionario.fichas.length > 0) {
+            // Si la ficha viene como un objeto con idficha
+            if (typeof funcionario.fichas[0] === 'object' && funcionario.fichas[0].idficha) {
+                setFichaSeleccionada(funcionario.fichas[0].idficha);
+            }
+            // Si la ficha viene como un id directo
+            else if (typeof funcionario.fichas[0] === 'number') {
+                setFichaSeleccionada(funcionario.fichas[0]);
+            }
+            // Si la ficha viene como código de ficha
+            else if (typeof funcionario.fichas[0] === 'object' && funcionario.fichas[0].codigo_ficha) {
+                // Buscar la ficha correspondiente en el array de fichas cargadas
+                const fichaEncontrada = fichas.find(f => f.codigo_ficha === funcionario.fichas[0].codigo_ficha);
+                if (fichaEncontrada) {
+                    setFichaSeleccionada(fichaEncontrada.idficha);
+                }
+            }
         }
     };
 
@@ -241,11 +265,11 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
                 // Loguear los roles para depuración
                 console.log("Roles cargados:", data.roles);
                 setRoles(data.roles);
-                
+
                 // Verificar el rol seleccionado actual después de cargar los roles
                 const rolActual = data.roles.find((r: Rol) => r.idtipo_funcionario === rolSeleccionado);
                 console.log("Rol seleccionado actual:", rolActual);
-                
+
                 // Actualizar isInstructor basado en el rol seleccionado
                 if (rolActual) {
                     setIsInstructor(rolActual.tipo_funcionario.toLowerCase() === 'instructor');
@@ -271,11 +295,11 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
                     Authorization: `Bearer ${token}`
                 }
             });
-            
+
             if (!response.ok) throw new Error("Error al obtener fichas");
-            
+
             const data = await response.json();
-            
+
             if (data.success && data.tipoFichas) {
                 console.log("Fichas cargadas:", data.tipoFichas);
                 // Transformar los datos al formato esperado
@@ -307,35 +331,53 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
         }
     };
 
+    const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB en bytes
+    const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png'];
+    
     // Manejar cambio de archivo de imagen
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0] || null;
+
+        // Limpiar error previo
+        setError(null);
+
+        if (!selectedFile) return;
+
+        // Validar tipo de archivo
+        if (!ALLOWED_IMAGE_TYPES.includes(selectedFile.type)) {
+            setError('Solo se permiten archivos JPG y PNG');
+            return;
+        }
+
+        // Validar tamaño
+        if (selectedFile.size > MAX_FILE_SIZE) {
+            setError(`La imagen excede el tamaño máximo de 2MB`);
+            return;
+        }
+
         setFile(selectedFile);
+        setImagenCargada(true);
 
         // Crear URL de vista previa
-        if (selectedFile) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPreviewUrl(reader.result as string);
-            };
-            reader.readAsDataURL(selectedFile);
-        }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setPreviewUrl(reader.result as string);
+        };
+        reader.readAsDataURL(selectedFile);
     };
 
-    // Manejar cambio de rol - MEJORADO
+    // Manejar cambio de rol
     const handleRolChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
         const value = e.target.value as number;
         setRolSeleccionado(value);
-        
+
         // Verificar si es instructor
         const rolInfo = roles.find(r => r.idtipo_funcionario === value);
-        console.log("Rol seleccionado cambiado a:", value);
-        console.log("Nuevo rol info:", rolInfo);
-        
+
         // Actualización directa de isInstructor para respuesta inmediata de UI
         const esTipoInstructor = rolInfo?.tipo_funcionario.toLowerCase() === 'instructor';
         setIsInstructor(esTipoInstructor);
-        
+
         // Si no es instructor, limpiar la ficha seleccionada
         if (!esTipoInstructor) {
             setFichaSeleccionada("");
@@ -356,37 +398,44 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
         e.preventDefault();
     };
 
+    // Manejo de errores en carga de imagen
+    const handleImageError = () => {
+        console.error("Error al cargar la imagen del funcionario");
+        // No mostrar la URL con error, mostrar la inicial
+        setImagenCargada(false);
+    };
+
     // Enviar el formulario
     const handleSubmit = async () => {
         setLoading(true);
         setError(null);
-        
+
         try {
             // Validar datos requeridos
             if (!formData.documento || !formData.nombres || !formData.apellidos || !formData.email || !formData.telefono) {
                 throw new Error("Por favor complete todos los campos obligatorios");
             }
-            
+
             // Preparar datos para enviar al API
             const apiData: FuncionarioApiData = {
                 funcionario: {
                     ...formData,
                     // Añadir ID solo si estamos editando
                     ...(formData.idFuncionario !== undefined && { idFuncionario: formData.idFuncionario }),
-                    // Convertir tipo_documento a número
+                    // Actualizar la URL de la imagen con la nueva ruta
                     tipo_documento_idtipo_documento: Number(formData.tipo_documento_idtipo_documento)
                 },
-                roles: [{ 
-                    idRol: rolSeleccionado, 
-                    password: formData.password 
+                roles: [{
+                    idRol: rolSeleccionado,
+                    password: formData.password
                 }],
             };
-            
+
             // Agregar ficha solo si el rol es instructor y hay una ficha seleccionada
             if (isInstructor && fichaSeleccionada !== "") {
                 apiData.fichas = [Number(fichaSeleccionada)];
             }
-            
+
             console.log("Datos a enviar:", apiData);
             await onSave(apiData, file);
             onClose();
@@ -433,10 +482,13 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
                             p={2}
                         >
                             <Avatar
-                                src={previewUrl || ""}
+                                src={previewUrl}
                                 sx={{ width: 150, height: 150, mb: 2 }}
+                                imgProps={{
+                                    onError: handleImageError
+                                }}
                             >
-                                {!previewUrl && formData.nombres
+                                {!imagenCargada && formData.nombres
                                     ? formData.nombres.charAt(0).toUpperCase()
                                     : "F"}
                             </Avatar>
@@ -545,7 +597,7 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
                                     required
                                 />
                             </Grid>
-                            
+
                             {/* Campo de contraseña general */}
                             <Grid item xs={12}>
                                 <TextField
@@ -573,7 +625,7 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
                                     }}
                                 />
                             </Grid>
-                            
+
                             {/* Selección de rol */}
                             <Grid item xs={12}>
                                 <FormControl fullWidth margin="normal">
