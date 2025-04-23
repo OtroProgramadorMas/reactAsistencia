@@ -28,7 +28,8 @@ import {
     Add as AddIcon,
     Edit as EditIcon,
     Delete as DeleteIcon,
-    Search as SearchIcon
+    Search as SearchIcon,
+    School as SchoolIcon
 } from "@mui/icons-material";
 import ModalFuncionario from "../Funcionarios/ModalFuncionario/MOdalFunci";
 
@@ -144,7 +145,7 @@ const GestionFuncionarios: React.FC = () => {
             if (!token) throw new Error("No se encontró token");
 
             const formData = new FormData();
-            formData.append("imagen", file);
+            formData.append("file", file); // Cambiado de "imagen" a "file" para que coincida con el backend
 
             const response = await fetch(`${API_URL}/upload`, {
                 method: "POST",
@@ -158,8 +159,8 @@ const GestionFuncionarios: React.FC = () => {
 
             const data = await response.json();
 
-            if (data.success && data.imageUrl) {
-                return data.imageUrl;
+            if (data.success && data.file && data.file.path) {
+                return data.file.path;
             } else {
                 throw new Error(data.msg || "Error al subir imagen");
             }
@@ -177,8 +178,8 @@ const GestionFuncionarios: React.FC = () => {
 
             // Si hay un archivo, subirlo primero
             if (file) {
-                const imageUrl = await subirImagen(file);
-                formData.funcionario.url_imgFuncionario = imageUrl;
+                const imagePath = await subirImagen(file);
+                formData.funcionario.url_imgFuncionario = imagePath;
             }
 
             // Determinar si es creación o actualización
@@ -304,8 +305,18 @@ const GestionFuncionarios: React.FC = () => {
         f.nombres.toLowerCase().includes(busqueda.toLowerCase()) ||
         f.apellidos.toLowerCase().includes(busqueda.toLowerCase()) ||
         f.documento.toLowerCase().includes(busqueda.toLowerCase()) ||
-        f.email.toLowerCase().includes(busqueda.toLowerCase())
+        f.email.toLowerCase().includes(busqueda.toLowerCase()) ||
+        // Incluir búsqueda por fichas
+        (f.fichas && f.fichas.some(ficha => 
+            ficha.codigo_ficha.toLowerCase().includes(busqueda.toLowerCase()) ||
+            (ficha.nombre_programa && ficha.nombre_programa.toLowerCase().includes(busqueda.toLowerCase()))
+        ))
     );
+
+    // Verificar si un funcionario es instructor
+    const esInstructor = (funcionario: Funcionario): boolean => {
+        return funcionario.roles.some(rol => rol.tipo_funcionario.toLowerCase() === 'instructor');
+    };
 
     return (
         <Box>
@@ -363,19 +374,20 @@ const GestionFuncionarios: React.FC = () => {
                                 <TableCell>Email</TableCell>
                                 <TableCell>Teléfono</TableCell>
                                 <TableCell>Roles</TableCell>
+                                <TableCell>Fichas Asignadas</TableCell>
                                 <TableCell width={140} align="center">Acciones</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {loading && funcionarios.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                                    <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
                                         <CircularProgress size={40} />
                                     </TableCell>
                                 </TableRow>
                             ) : funcionariosFiltrados.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                                    <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
                                         <Typography variant="body1" color="text.secondary">
                                             No se encontraron funcionarios
                                         </Typography>
@@ -386,7 +398,8 @@ const GestionFuncionarios: React.FC = () => {
                                     <TableRow key={funcionario.idFuncionario} hover>
                                         <TableCell>
                                             <Avatar 
-                                                src={funcionario.url_imgFuncionario || undefined} 
+                                                src={funcionario.url_imgFuncionario ? 
+                                                    `${API_URL}${funcionario.url_imgFuncionario}` : undefined} 
                                                 alt={`${funcionario.nombres} ${funcionario.apellidos}`}
                                                 sx={{ width: 40, height: 40 }}
                                             >
@@ -408,11 +421,39 @@ const GestionFuncionarios: React.FC = () => {
                                                         key={rol.idtipo_funcionario}
                                                         label={rol.tipo_funcionario}
                                                         size="small"
-                                                        color={rol.tipo_funcionario === 'instructor' ? "primary" : "secondary"}
+                                                        color={rol.tipo_funcionario.toLowerCase() === 'instructor' ? "primary" : "secondary"}
                                                         variant="outlined"
                                                     />
                                                 ))}
                                             </Box>
+                                        </TableCell>
+                                        <TableCell>
+                                            {esInstructor(funcionario) && funcionario.fichas && funcionario.fichas.length > 0 ? (
+                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                    {funcionario.fichas.map((ficha) => (
+                                                        <Tooltip 
+                                                            key={ficha.idficha} 
+                                                            title={ficha.nombre_programa || `Ficha ${ficha.codigo_ficha}`}
+                                                        >
+                                                            <Chip
+                                                                icon={<SchoolIcon />}
+                                                                label={ficha.codigo_ficha}
+                                                                size="small"
+                                                                color="info"
+                                                                variant="outlined"
+                                                            />
+                                                        </Tooltip>
+                                                    ))}
+                                                </Box>
+                                            ) : esInstructor(funcionario) ? (
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Sin fichas asignadas
+                                                </Typography>
+                                            ) : (
+                                                <Typography variant="body2" color="text.secondary">
+                                                    N/A
+                                                </Typography>
+                                            )}
                                         </TableCell>
                                         <TableCell align="center">
                                             <Tooltip title="Editar">
