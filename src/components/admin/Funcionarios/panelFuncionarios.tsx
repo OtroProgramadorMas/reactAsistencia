@@ -31,7 +31,7 @@ import {
     Search as SearchIcon,
     School as SchoolIcon
 } from "@mui/icons-material";
-import ModalFuncionario from "../Funcionarios/ModalFuncionario/MOdalFunci";
+import ModalFuncionario from "./modalFuncionrios";
 
 // API URL base
 const API_URL = "http://localhost:8000";
