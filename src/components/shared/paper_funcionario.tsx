@@ -16,6 +16,9 @@ import {
   Star as StarIcon
 } from "@mui/icons-material";
 
+// API URL base - adding this like in the other components
+const API_URL = "http://localhost:8000";
+
 export interface FuncionarioConRol {
   idFuncionario: number | null;
   documento: string;
@@ -50,6 +53,8 @@ const FuncionarioCard: React.FC<FuncionarioCardProps> = ({
   const [user, setUser] = useState<FuncionarioConRol | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imagenCargada, setImagenCargada] = useState<boolean>(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -60,7 +65,7 @@ const FuncionarioCard: React.FC<FuncionarioCardProps> = ({
           throw new Error("No hay información de autenticación.");
         }
 
-        const response = await fetch(`http://localhost:8000/funcionarios/${funcionarioId}`, {
+        const response = await fetch(`${API_URL}/funcionarios/${funcionarioId}`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -74,6 +79,20 @@ const FuncionarioCard: React.FC<FuncionarioCardProps> = ({
 
         const data = await response.json();
         setUser(data.funcionario);
+
+        // Preparar URL de previsualización de imagen, similar al modal
+        if (data.funcionario.url_imgFuncionario) {
+          // Si la ruta no comienza con http, debemos concatenar la URL base
+          if (!data.funcionario.url_imgFuncionario.startsWith('http')) {
+            setPreviewUrl(`${API_URL}${data.funcionario.url_imgFuncionario}`);
+          } else {
+            setPreviewUrl(data.funcionario.url_imgFuncionario);
+          }
+          setImagenCargada(true);
+        } else {
+          setPreviewUrl(null);
+          setImagenCargada(false);
+        }
 
       } catch (err) {
         setError((err as Error).message);
@@ -91,6 +110,12 @@ const FuncionarioCard: React.FC<FuncionarioCardProps> = ({
     return user.abreviatura_tipo_documento 
       ? `${user.abreviatura_tipo_documento} ${user.documento}`
       : user.documento;
+  };
+
+  // Manejo de errores en carga de imagen
+  const handleImageError = () => {
+    console.error("Error al cargar la imagen del funcionario");
+    setImagenCargada(false);
   };
 
   return (
@@ -152,11 +177,18 @@ const FuncionarioCard: React.FC<FuncionarioCardProps> = ({
               ))}
             </Box>
             
-            {/* Foto del perfil */}
+            {/* Foto del perfil con manejo mejorado y manejo de errores como en modalFuncionario */}
             <Avatar
-              src={user.url_imgFuncionario || undefined}
+              src={previewUrl}
               sx={{ width: 70, height: 70, ml: 'auto' }}
-            />
+              imgProps={{
+                onError: handleImageError
+              }}
+            >
+              {!imagenCargada && user.nombres
+                ? user.nombres.charAt(0).toUpperCase()
+                : "F"}
+            </Avatar>
           </Box>
         )}
       </CardContent>

@@ -27,7 +27,7 @@ const InstructorHomePage = () => {
       }
 
       try {
-        const response = await fetch(`http://localhost:8000/fichas/instructor/${idFuncionario}`, {
+        const response = await fetch(`http://localhost:8000/fichas_activas/instructor/${idFuncionario}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

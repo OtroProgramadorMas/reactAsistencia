@@ -17,7 +17,12 @@ import {
     CircularProgress,
     Alert,
     IconButton,
-    InputAdornment
+    InputAdornment,
+    Checkbox,
+    FormGroup,
+    FormControlLabel,
+    Paper,
+    Collapse
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import Visibility from "@mui/icons-material/Visibility";
@@ -32,15 +37,17 @@ interface TipoDocumento {
     tipo_documento: string;
 }
 
-interface Ficha {
-    idficha: number;
-    codigo_ficha: string;
-    nombre_programa?: string;
-}
-
 interface Rol {
     idtipo_funcionario: number;
     tipo_funcionario: string;
+}
+
+// Interfaz para roles seleccionados con contraseña
+interface RolSeleccionado {
+    idRol: number;
+    tipo_funcionario: string; // Añadido para mostrar nombre
+    password: string;
+    mostrarPassword: boolean; // Para control de visibilidad
 }
 
 // Datos para enviar al API
@@ -52,12 +59,11 @@ interface FuncionarioApiData {
         apellidos: string;
         email: string;
         telefono: string;
-        password?: string;
+        password?: string; // Ya no se usa este campo general
         url_imgFuncionario?: string | null;
         tipo_documento_idtipo_documento: number;
     };
     roles: { idRol: number; password: string }[];
-    fichas?: number[];
 }
 
 // Props para el componente
@@ -84,28 +90,22 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
         apellidos: "",
         email: "",
         telefono: "",
-        password: "",
         url_imgFuncionario: null as string | null,
         tipo_documento_idtipo_documento: 1, // Valor por defecto
     });
 
-    // Estados para roles y fichas seleccionados
-    const [rolSeleccionado, setRolSeleccionado] = useState<number>(1); // Default: Instructor
-    const [fichaSeleccionada, setFichaSeleccionada] = useState<number | "">("");
+    // Estados para roles seleccionados
+    const [rolesSeleccionados, setRolesSeleccionados] = useState<RolSeleccionado[]>([]);
 
     // Estados para opciones disponibles
     const [tiposDocumento, setTiposDocumento] = useState<TipoDocumento[]>([]);
-    const [fichas, setFichas] = useState<Ficha[]>([]);
     const [roles, setRoles] = useState<Rol[]>([]);
 
     // Estados para UI
     const [loading, setLoading] = useState<boolean>(false);
-    const [cargandoImagen, setCargandoImagen] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [showPassword, setShowPassword] = useState<boolean>(false);
-    const [isInstructor, setIsInstructor] = useState<boolean>(true); // Por defecto instructor
     const [imagenCargada, setImagenCargada] = useState<boolean>(false);
 
     // Obtener token de autenticación
@@ -116,7 +116,6 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
         if (open) {
             fetchTiposDocumento();
             fetchRoles();
-            fetchFichas();
             resetForm();
 
             // Si estamos editando, preparar los datos existentes
@@ -125,18 +124,6 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
             }
         }
     }, [open, funcionario]);
-
-    // Verificar si el rol es instructor - MEJORADO
-    useEffect(() => {
-        if (roles.length === 0) return; // No hacer nada si no hay roles cargados
-
-        const rolInfo = roles.find(r => r.idtipo_funcionario === rolSeleccionado);
-
-        // Convertir a minúsculas para comparación insensible a mayúsculas/minúsculas
-        const esTipoInstructor = rolInfo?.tipo_funcionario.toLowerCase() === 'instructor';
-        
-        setIsInstructor(esTipoInstructor);
-    }, [rolSeleccionado, roles]);
 
     // Resetear formulario
     const resetForm = () => {
@@ -147,12 +134,10 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
             apellidos: "",
             email: "",
             telefono: "",
-            password: "",
             url_imgFuncionario: null,
             tipo_documento_idtipo_documento: 1,
         });
-        setRolSeleccionado(1); // Default: Instructor
-        setFichaSeleccionada("");
+        setRolesSeleccionados([]);
         setFile(null);
         setPreviewUrl(null);
         setError(null);
@@ -171,12 +156,11 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
             apellidos: funcionario.apellidos || "",
             email: funcionario.email || "",
             telefono: funcionario.telefono || "",
-            password: "", // No mostramos la contraseña existente por seguridad
             url_imgFuncionario: funcionario.url_imgFuncionario,
             tipo_documento_idtipo_documento: funcionario.tipo_documento_idtipo_documento || 1,
         });
 
-        // Preparar URL de previsualización (corregido)
+        // Preparar URL de previsualización
         if (funcionario.url_imgFuncionario) {
             // Si la ruta no comienza con http, debemos concatenar la URL base
             if (!funcionario.url_imgFuncionario.startsWith('http')) {
@@ -190,29 +174,15 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
             setImagenCargada(false);
         }
 
-        // Preparar rol (tomamos el primero si hay varios)
+        // Preparar roles (ahora múltiples con contraseñas individuales)
         if (funcionario.roles && funcionario.roles.length > 0) {
-            setRolSeleccionado(funcionario.roles[0].idtipo_funcionario);
-        }
-
-        // Preparar ficha (tomamos la primera si hay varias)
-        if (funcionario.fichas && funcionario.fichas.length > 0) {
-            // Si la ficha viene como un objeto con idficha
-            if (typeof funcionario.fichas[0] === 'object' && funcionario.fichas[0].idficha) {
-                setFichaSeleccionada(funcionario.fichas[0].idficha);
-            }
-            // Si la ficha viene como un id directo
-            else if (typeof funcionario.fichas[0] === 'number') {
-                setFichaSeleccionada(funcionario.fichas[0]);
-            }
-            // Si la ficha viene como código de ficha
-            else if (typeof funcionario.fichas[0] === 'object' && funcionario.fichas[0].codigo_ficha) {
-                // Buscar la ficha correspondiente en el array de fichas cargadas
-                const fichaEncontrada = fichas.find(f => f.codigo_ficha === funcionario.fichas[0].codigo_ficha);
-                if (fichaEncontrada) {
-                    setFichaSeleccionada(fichaEncontrada.idficha);
-                }
-            }
+            const rolesPreparados = funcionario.roles.map((rol: any) => ({
+                idRol: rol.idtipo_funcionario,
+                tipo_funcionario: rol.tipo_funcionario,
+                password: rol.password || "",
+                mostrarPassword: false
+            }));
+            setRolesSeleccionados(rolesPreparados);
         }
     };
 
@@ -262,59 +232,13 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
             const data = await response.json();
 
             if (data.success && data.roles) {
-                // Loguear los roles para depuración
-                console.log("Roles cargados:", data.roles);
                 setRoles(data.roles);
-
-                // Verificar el rol seleccionado actual después de cargar los roles
-                const rolActual = data.roles.find((r: Rol) => r.idtipo_funcionario === rolSeleccionado);
-                console.log("Rol seleccionado actual:", rolActual);
-
-                // Actualizar isInstructor basado en el rol seleccionado
-                if (rolActual) {
-                    setIsInstructor(rolActual.tipo_funcionario.toLowerCase() === 'instructor');
-                }
             } else {
                 throw new Error(data.msg || "No se pudieron cargar los roles");
             }
         } catch (err) {
             console.error("Error al cargar roles:", err);
             setError(err instanceof Error ? err.message : "Error al cargar roles");
-        }
-    };
-
-    // Obtener fichas disponibles
-    const fetchFichas = async () => {
-        try {
-            const token = getToken();
-            if (!token) throw new Error("No se encontró token");
-
-            const response = await fetch(`${API_URL}/tipofichacargo`, {
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) throw new Error("Error al obtener fichas");
-
-            const data = await response.json();
-
-            if (data.success && data.tipoFichas) {
-                console.log("Fichas cargadas:", data.tipoFichas);
-                // Transformar los datos al formato esperado
-                const fichasFormateadas = data.tipoFichas.map((ficha: any) => ({
-                    idficha: ficha.idficha || ficha.codigo_ficha,
-                    codigo_ficha: ficha.codigo_ficha,
-                    nombre_programa: ficha.nombre_programa || `Ficha ${ficha.codigo_ficha}`
-                }));
-                setFichas(fichasFormateadas);
-            } else {
-                throw new Error(data.msg || "No se pudieron cargar las fichas");
-            }
-        } catch (err) {
-            console.error("Error al cargar fichas:", err);
-            setError(err instanceof Error ? err.message : "Error al cargar fichas");
         }
     };
 
@@ -366,43 +290,56 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
         reader.readAsDataURL(selectedFile);
     };
 
-    // Manejar cambio de rol
-    const handleRolChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
-        const value = e.target.value as number;
-        setRolSeleccionado(value);
-
-        // Verificar si es instructor
-        const rolInfo = roles.find(r => r.idtipo_funcionario === value);
-
-        // Actualización directa de isInstructor para respuesta inmediata de UI
-        const esTipoInstructor = rolInfo?.tipo_funcionario.toLowerCase() === 'instructor';
-        setIsInstructor(esTipoInstructor);
-
-        // Si no es instructor, limpiar la ficha seleccionada
-        if (!esTipoInstructor) {
-            setFichaSeleccionada("");
+    // Manejar selección de roles con checkboxes
+    const handleRolChange = (rol: Rol, isChecked: boolean) => {
+        if (isChecked) {
+            // Agregar rol si no existe
+            if (!rolesSeleccionados.some(r => r.idRol === rol.idtipo_funcionario)) {
+                setRolesSeleccionados([
+                    ...rolesSeleccionados,
+                    {
+                        idRol: rol.idtipo_funcionario,
+                        tipo_funcionario: rol.tipo_funcionario,
+                        password: "",
+                        mostrarPassword: false
+                    }
+                ]);
+            }
+        } else {
+            // Eliminar rol
+            setRolesSeleccionados(rolesSeleccionados.filter(
+                r => r.idRol !== rol.idtipo_funcionario
+            ));
         }
     };
 
-    // Manejar cambio de ficha
-    const handleFichaChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
-        setFichaSeleccionada(e.target.value as number);
+    // Manejar cambio de contraseña para un rol específico
+    const handleRolPasswordChange = (idRol: number, password: string) => {
+        setRolesSeleccionados(prevRoles => 
+            prevRoles.map(rol => 
+                rol.idRol === idRol ? { ...rol, password } : rol
+            )
+        );
     };
 
-    // Mostrar/ocultar contraseña
-    const handleClickShowPassword = () => {
-        setShowPassword(!showPassword);
-    };
-
-    const handleMouseDownPassword = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault();
+    // Manejar visibilidad de contraseña para un rol
+    const handleRolPasswordVisibility = (idRol: number) => {
+        setRolesSeleccionados(prevRoles => 
+            prevRoles.map(rol => 
+                rol.idRol === idRol ? { ...rol, mostrarPassword: !rol.mostrarPassword } : rol
+            )
+        );
     };
 
     // Manejo de errores en carga de imagen
     const handleImageError = () => {
         console.error("Error al cargar la imagen del funcionario");
-        // No mostrar la URL con error, mostrar la inicial
         setImagenCargada(false);
+    };
+
+    // Verificar si un rol está seleccionado
+    const isRolSelected = (idRol: number): boolean => {
+        return rolesSeleccionados.some(r => r.idRol === idRol);
     };
 
     // Enviar el formulario
@@ -416,25 +353,31 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
                 throw new Error("Por favor complete todos los campos obligatorios");
             }
 
+            // Validar que se seleccionó al menos un rol
+            if (rolesSeleccionados.length === 0) {
+                throw new Error("Debe seleccionar al menos un rol");
+            }
+
+            // Validar que todos los roles tengan contraseña
+            for (const rol of rolesSeleccionados) {
+                if (!rol.password.trim()) {
+                    throw new Error(`Debe ingresar una contraseña para el rol de ${rol.tipo_funcionario}`);
+                }
+            }
+
             // Preparar datos para enviar al API
             const apiData: FuncionarioApiData = {
                 funcionario: {
                     ...formData,
                     // Añadir ID solo si estamos editando
                     ...(formData.idFuncionario !== undefined && { idFuncionario: formData.idFuncionario }),
-                    // Actualizar la URL de la imagen con la nueva ruta
                     tipo_documento_idtipo_documento: Number(formData.tipo_documento_idtipo_documento)
                 },
-                roles: [{
-                    idRol: rolSeleccionado,
-                    password: formData.password
-                }],
+                roles: rolesSeleccionados.map(rol => ({
+                    idRol: rol.idRol,
+                    password: rol.password
+                }))
             };
-
-            // Agregar ficha solo si el rol es instructor y hay una ficha seleccionada
-            if (isInstructor && fichaSeleccionada !== "") {
-                apiData.fichas = [Number(fichaSeleccionada)];
-            }
 
             console.log("Datos a enviar:", apiData);
             await onSave(apiData, file);
@@ -598,80 +541,57 @@ const ModalFuncionario: React.FC<ModalFuncionarioProps> = ({
                                 />
                             </Grid>
 
-                            {/* Campo de contraseña general */}
+                            {/* Sección de roles con checkboxes */}
                             <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Contraseña"
-                                    name="password"
-                                    type={showPassword ? "text" : "password"}
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    margin="normal"
-                                    variant="outlined"
-                                    InputProps={{
-                                        endAdornment: (
-                                            <InputAdornment position="end">
-                                                <IconButton
-                                                    aria-label="toggle password visibility"
-                                                    onClick={handleClickShowPassword}
-                                                    onMouseDown={handleMouseDownPassword}
-                                                    edge="end"
-                                                >
-                                                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                                                </IconButton>
-                                            </InputAdornment>
-                                        )
-                                    }}
-                                />
-                            </Grid>
-
-                            {/* Selección de rol */}
-                            <Grid item xs={12}>
-                                <FormControl fullWidth margin="normal">
-                                    <InputLabel>Rol</InputLabel>
-                                    <Select
-                                        value={rolSeleccionado}
-                                        onChange={handleRolChange}
-                                        label="Rol"
-                                    >
+                                <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
+                                    <Typography variant="subtitle1" gutterBottom fontWeight="500">
+                                        Roles del Funcionario
+                                    </Typography>
+                                    <FormGroup>
                                         {roles.map((rol) => (
-                                            <MenuItem
-                                                key={rol.idtipo_funcionario}
-                                                value={rol.idtipo_funcionario}
-                                            >
-                                                {rol.tipo_funcionario}
-                                            </MenuItem>
+                                            <Box key={rol.idtipo_funcionario} sx={{ mb: 2 }}>
+                                                <FormControlLabel
+                                                    control={
+                                                        <Checkbox
+                                                            checked={isRolSelected(rol.idtipo_funcionario)}
+                                                            onChange={(e) => handleRolChange(rol, e.target.checked)}
+                                                        />
+                                                    }
+                                                    label={rol.tipo_funcionario}
+                                                />
+                                                <Collapse in={isRolSelected(rol.idtipo_funcionario)}>
+                                                    <Box sx={{ pl: 4, pr: 2, mt: 1 }}>
+                                                        <TextField
+                                                            fullWidth
+                                                            label={`Contraseña para ${rol.tipo_funcionario}`}
+                                                            type={rolesSeleccionados.find(r => r.idRol === rol.idtipo_funcionario)?.mostrarPassword ? "text" : "password"}
+                                                            value={rolesSeleccionados.find(r => r.idRol === rol.idtipo_funcionario)?.password || ""}
+                                                            onChange={(e) => handleRolPasswordChange(rol.idtipo_funcionario, e.target.value)}
+                                                            variant="outlined"
+                                                            size="small"
+                                                            required
+                                                            InputProps={{
+                                                                endAdornment: (
+                                                                    <InputAdornment position="end">
+                                                                        <IconButton
+                                                                            aria-label="toggle password visibility"
+                                                                            onClick={() => handleRolPasswordVisibility(rol.idtipo_funcionario)}
+                                                                            edge="end"
+                                                                            size="small"
+                                                                        >
+                                                                            {rolesSeleccionados.find(r => r.idRol === rol.idtipo_funcionario)?.mostrarPassword ? <VisibilityOff /> : <Visibility />}
+                                                                        </IconButton>
+                                                                    </InputAdornment>
+                                                                )
+                                                            }}
+                                                        />
+                                                    </Box>
+                                                </Collapse>
+                                            </Box>
                                         ))}
-                                    </Select>
-                                </FormControl>
+                                    </FormGroup>
+                                </Paper>
                             </Grid>
-
-                            {/* Mostrar selección de ficha solo si el rol es instructor */}
-                            {isInstructor && (
-                                <Grid item xs={12}>
-                                    <FormControl fullWidth margin="normal">
-                                        <InputLabel>Ficha a Cargo</InputLabel>
-                                        <Select
-                                            value={fichaSeleccionada}
-                                            onChange={handleFichaChange}
-                                            label="Ficha a Cargo"
-                                        >
-                                            <MenuItem value="">
-                                                <em>Ninguna</em>
-                                            </MenuItem>
-                                            {fichas.map((ficha) => (
-                                                <MenuItem
-                                                    key={ficha.idficha}
-                                                    value={ficha.idficha}
-                                                >
-                                                    {ficha.codigo_ficha} {ficha.nombre_programa ? `- ${ficha.nombre_programa}` : ''}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-                            )}
                         </Grid>
                     </Grid>
                 </Grid>

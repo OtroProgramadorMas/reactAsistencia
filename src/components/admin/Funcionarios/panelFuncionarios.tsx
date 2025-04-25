@@ -22,16 +22,18 @@ import {
     DialogContent,
     DialogContentText,
     DialogTitle,
-    Snackbar
 } from "@mui/material";
 import {
     Add as AddIcon,
     Edit as EditIcon,
     Delete as DeleteIcon,
     Search as SearchIcon,
-    School as SchoolIcon
+    Class as ClassIcon
 } from "@mui/icons-material";
 import ModalFuncionario from "./modalFuncionrios";
+import ModalFichasInstructor from "./ModalFichasInstructor";
+import CustomSnackbar from "./../../shared/customSnackbar";
+import useSnackbar from "./../../shared/useSnackbar";
 
 // API URL base
 const API_URL = "http://localhost:8000";
@@ -74,7 +76,6 @@ interface FuncionarioApiData {
         tipo_documento_idtipo_documento: number;
     };
     roles: { idRol: number; password: string }[];
-    fichas?: number[];
 }
 
 const GestionFuncionarios: React.FC = () => {
@@ -86,17 +87,15 @@ const GestionFuncionarios: React.FC = () => {
     const [funcionarioEditando, setFuncionarioEditando] = useState<Funcionario | null>(null);
     const [dialogoEliminarAbierto, setDialogoEliminarAbierto] = useState<boolean>(false);
     const [funcionarioAEliminar, setFuncionarioAEliminar] = useState<number | null>(null);
-    const [notificacion, setNotificacion] = useState<{
-        abierta: boolean;
-        mensaje: string;
-        tipo: "success" | "error" | "info" | "warning";
-    }>({
-        abierta: false,
-        mensaje: "",
-        tipo: "success"
-    });
     const [busqueda, setBusqueda] = useState<string>("");
     
+    // Estados para el modal de fichas
+    const [modalFichasOpen, setModalFichasOpen] = useState<boolean>(false);
+    const [funcionarioParaFichas, setFuncionarioParaFichas] = useState<Funcionario | null>(null);
+    
+    // Hook de snackbar personalizado
+    const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
+
     // Obtener token de autenticación
     const getToken = (): string | null => localStorage.getItem("token");
 
@@ -208,20 +207,18 @@ const GestionFuncionarios: React.FC = () => {
             await cargarFuncionarios();
             
             // Mostrar notificación de éxito
-            setNotificacion({
-                abierta: true,
-                mensaje: isEdicion 
+            showSnackbar(
+                isEdicion 
                     ? "Funcionario actualizado exitosamente" 
                     : "Funcionario creado exitosamente",
-                tipo: "success"
-            });
+                "success"
+            );
         } catch (err) {
             console.error("Error al guardar funcionario:", err);
-            setNotificacion({
-                abierta: true,
-                mensaje: err instanceof Error ? err.message : "Error al guardar funcionario",
-                tipo: "error"
-            });
+            showSnackbar(
+                err instanceof Error ? err.message : "Error al guardar funcionario",
+                "error"
+            );
             throw err;
         }
     };
@@ -251,24 +248,36 @@ const GestionFuncionarios: React.FC = () => {
             await cargarFuncionarios();
             
             // Mostrar notificación de éxito
-            setNotificacion({
-                abierta: true,
-                mensaje: "Funcionario eliminado exitosamente",
-                tipo: "success"
-            });
+            showSnackbar("Funcionario eliminado exitosamente", "success");
         } catch (err) {
             console.error("Error al eliminar funcionario:", err);
-            setNotificacion({
-                abierta: true,
-                mensaje: err instanceof Error ? err.message : "Error al eliminar funcionario",
-                tipo: "error"
-            });
+            showSnackbar(
+                err instanceof Error ? err.message : "Error al eliminar funcionario", 
+                "error"
+            );
         } finally {
             cerrarDialogoEliminar();
         }
     };
 
-    // Manejadores para el modal
+    // Actualizar tras asignación de fichas
+    const actualizarTrasAsignacionFichas = async () => {
+        try {
+            // Recargar datos de funcionarios para reflejar cambios en asignaciones
+            await cargarFuncionarios();
+            
+            // Mostrar notificación de éxito
+            showSnackbar("Asignación de fichas actualizada exitosamente", "success");
+        } catch (err) {
+            console.error("Error al actualizar tras asignación de fichas:", err);
+            showSnackbar(
+                err instanceof Error ? err.message : "Error al actualizar datos", 
+                "error"
+            );
+        }
+    };
+
+    // Manejadores para el modal de funcionarios
     const abrirModalAgregar = () => {
         setFuncionarioEditando(null);
         setModalOpen(true);
@@ -282,6 +291,17 @@ const GestionFuncionarios: React.FC = () => {
     const cerrarModal = () => {
         setModalOpen(false);
         setFuncionarioEditando(null);
+    };
+
+    // Manejadores para el modal de fichas
+    const abrirModalFichas = (funcionario: Funcionario) => {
+        setFuncionarioParaFichas(funcionario);
+        setModalFichasOpen(true);
+    };
+
+    const cerrarModalFichas = () => {
+        setModalFichasOpen(false);
+        setFuncionarioParaFichas(null);
     };
 
     // Manejadores para el diálogo de eliminar
@@ -306,10 +326,8 @@ const GestionFuncionarios: React.FC = () => {
         f.apellidos.toLowerCase().includes(busqueda.toLowerCase()) ||
         f.documento.toLowerCase().includes(busqueda.toLowerCase()) ||
         f.email.toLowerCase().includes(busqueda.toLowerCase()) ||
-        // Incluir búsqueda por fichas
-        (f.fichas && f.fichas.some(ficha => 
-            ficha.codigo_ficha.toLowerCase().includes(busqueda.toLowerCase()) ||
-            (ficha.nombre_programa && ficha.nombre_programa.toLowerCase().includes(busqueda.toLowerCase()))
+        (f.roles && f.roles.some(rol => 
+            rol.tipo_funcionario.toLowerCase().includes(busqueda.toLowerCase())
         ))
     );
 
@@ -374,20 +392,19 @@ const GestionFuncionarios: React.FC = () => {
                                 <TableCell>Email</TableCell>
                                 <TableCell>Teléfono</TableCell>
                                 <TableCell>Roles</TableCell>
-                                <TableCell>Fichas Asignadas</TableCell>
-                                <TableCell width={140} align="center">Acciones</TableCell>
+                                <TableCell width={180} align="center">Acciones</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {loading && funcionarios.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
+                                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
                                         <CircularProgress size={40} />
                                     </TableCell>
                                 </TableRow>
                             ) : funcionariosFiltrados.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
+                                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
                                         <Typography variant="body1" color="text.secondary">
                                             No se encontraron funcionarios
                                         </Typography>
@@ -427,51 +444,36 @@ const GestionFuncionarios: React.FC = () => {
                                                 ))}
                                             </Box>
                                         </TableCell>
-                                        <TableCell>
-                                            {esInstructor(funcionario) && funcionario.fichas && funcionario.fichas.length > 0 ? (
-                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                                    {funcionario.fichas.map((ficha) => (
-                                                        <Tooltip 
-                                                            key={ficha.idficha} 
-                                                            title={ficha.nombre_programa || `Ficha ${ficha.codigo_ficha}`}
-                                                        >
-                                                            <Chip
-                                                                icon={<SchoolIcon />}
-                                                                label={ficha.codigo_ficha}
-                                                                size="small"
-                                                                color="info"
-                                                                variant="outlined"
-                                                            />
-                                                        </Tooltip>
-                                                    ))}
-                                                </Box>
-                                            ) : esInstructor(funcionario) ? (
-                                                <Typography variant="body2" color="text.secondary">
-                                                    Sin fichas asignadas
-                                                </Typography>
-                                            ) : (
-                                                <Typography variant="body2" color="text.secondary">
-                                                    N/A
-                                                </Typography>
-                                            )}
-                                        </TableCell>
                                         <TableCell align="center">
-                                            <Tooltip title="Editar">
-                                                <IconButton
-                                                    color="primary"
-                                                    onClick={() => abrirModalEditar(funcionario)}
-                                                >
-                                                    <EditIcon />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Eliminar">
-                                                <IconButton
-                                                    color="error"
-                                                    onClick={() => abrirDialogoEliminar(funcionario.idFuncionario)}
-                                                >
-                                                    <DeleteIcon />
-                                                </IconButton>
-                                            </Tooltip>
+                                            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                                                <Tooltip title="Editar">
+                                                    <IconButton
+                                                        color="primary"
+                                                        onClick={() => abrirModalEditar(funcionario)}
+                                                    >
+                                                        <EditIcon />
+                                                    </IconButton>
+                                                </Tooltip>
+                                                <Tooltip title="Eliminar">
+                                                    <IconButton
+                                                        color="error"
+                                                        onClick={() => abrirDialogoEliminar(funcionario.idFuncionario)}
+                                                    >
+                                                        <DeleteIcon />
+                                                    </IconButton>
+                                                </Tooltip>
+                                                <Tooltip title={esInstructor(funcionario) ? "Gestionar Fichas" : "Solo instructores pueden tener fichas"}>
+                                                    <span>
+                                                        <IconButton
+                                                            color="info"
+                                                            onClick={() => abrirModalFichas(funcionario)}
+                                                            disabled={!esInstructor(funcionario)}
+                                                        >
+                                                            <ClassIcon />
+                                                        </IconButton>
+                                                    </span>
+                                                </Tooltip>
+                                            </Box>
                                         </TableCell>
                                     </TableRow>
                                 ))
@@ -488,6 +490,14 @@ const GestionFuncionarios: React.FC = () => {
                 funcionario={funcionarioEditando}
                 onSave={guardarFuncionario}
                 title={funcionarioEditando ? "Editar Funcionario" : "Agregar Funcionario"}
+            />
+
+            {/* Modal para gestionar fichas de instructores */}
+            <ModalFichasInstructor
+                open={modalFichasOpen}
+                onClose={cerrarModalFichas}
+                funcionario={funcionarioParaFichas}
+                onSave={actualizarTrasAsignacionFichas}
             />
 
             {/* Diálogo de confirmación para eliminar */}
@@ -511,21 +521,14 @@ const GestionFuncionarios: React.FC = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* Notificaciones */}
-            <Snackbar
-                open={notificacion.abierta}
+            {/* Snackbar para notificaciones */}
+            <CustomSnackbar
+                snackbar={snackbar}
+                handleClose={closeSnackbar}
                 autoHideDuration={6000}
-                onClose={() => setNotificacion({ ...notificacion, abierta: false })}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            >
-                <Alert
-                    onClose={() => setNotificacion({ ...notificacion, abierta: false })}
-                    severity={notificacion.tipo}
-                    sx={{ width: '100%' }}
-                >
-                    {notificacion.mensaje}
-                </Alert>
-            </Snackbar>
+                anchorVertical="bottom"
+                anchorHorizontal="right"
+            />
         </Box>
     );
 };
