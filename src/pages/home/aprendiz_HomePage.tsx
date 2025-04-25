@@ -22,7 +22,8 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Warning as WarningIcon,
-  Assignment as AssignmentIcon
+  Assignment as AssignmentIcon,
+  School as SchoolIcon // Icono para instructor
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import FichaPaper from '../../components/shared/paper_ficha';
@@ -57,6 +58,7 @@ interface FichaData {
 }
 
 interface AsistenciaData {
+  nombre_instructor: string;
   idasistencia: number;
   fecha_asistencia: string;
   nombre_tipo_asistencia: string;
@@ -64,6 +66,9 @@ interface AsistenciaData {
   nombres_aprendiz: string;
   apellidos_aprendiz: string;
   nombre_programa: string;
+  // Nuevos campos para el instructor
+  instructor_nombre?: string;
+  instructor_apellido?: string;
 }
 
 // Componente TabPanel para mostrar contenido de pestañas
@@ -278,24 +283,30 @@ const AprendizHomePage = () => {
     }
   };
   
-  // Preparar los datos para el DataTable (solo fecha y estado)
-  const asistenciasRows = asistencias.map((asistencia) => ({
-    id: asistencia.idasistencia,
-    fecha: formatDate(asistencia.fecha_asistencia),
-    estado: asistencia.nombre_tipo_asistencia
-  }));
+  // Preparar los datos para el DataTable (incluyendo el instructor)
+// Modifica esta parte del componente AprendizHomePage
+// Reemplaza el mapeo de asistenciasRows con este código:
 
-  // Definir las columnas para el DataTable (solo fecha y estado)
+// Preparar los datos para el DataTable (usando el campo nombre_instructor)
+const asistenciasRows = asistencias.map((asistencia) => ({
+  id: asistencia.idasistencia,
+  fecha: formatDate(asistencia.fecha_asistencia),
+  estado: asistencia.nombre_tipo_asistencia,
+  instructor: asistencia.nombre_instructor || 'No disponible'
+}));
+
+// El resto del componente permanece igual
+  // Definir las columnas para el DataTable (añadiendo columna de instructor)
   const asistenciasColumns: GridColDef[] = [
     { 
       field: 'fecha', 
       headerName: 'Fecha', 
-      width: 150 
+      width: 120 
     },
     { 
       field: 'estado', 
       headerName: 'Estado', 
-      width: 200,
+      width: 150,
       renderCell: (params: GridRenderCellParams) => (
         <Chip 
           icon={getAsistenciaIcon(params.value as string)}
@@ -303,6 +314,19 @@ const AprendizHomePage = () => {
           color={getAsistenciaColor(params.value as string)}
           size="small"
         />
+      )
+    },
+    {
+      field: 'instructor',
+      headerName: 'Instructor',
+      width: 200,
+      renderCell: (params: GridRenderCellParams) => (
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <SchoolIcon sx={{ fontSize: 16, mr: 0.5, color: 'primary.main' }} />
+          <Typography variant="body2">
+            {params.value}
+          </Typography>
+        </Box>
       )
     }
   ];
