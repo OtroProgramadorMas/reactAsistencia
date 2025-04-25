@@ -1,4 +1,3 @@
-// Actualización para panelFichas.tsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -17,18 +16,25 @@ import {
   MenuItem,
   SelectChangeEvent,
   IconButton,
-  Tooltip
+  Tooltip,
+  Snackbar,
+  Alert
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PersonIcon from '@mui/icons-material/Person';
 import AddIcon from "@mui/icons-material/Add";
+import SchoolIcon from "@mui/icons-material/School";
 import { GridColDef } from "@mui/x-data-grid";
 import DinamicTable from "../../shared/dataTable";
 import { useNavigate, useLocation } from "react-router-dom";
 import CustomSnackbar from "../../shared/customSnackbar";
 import useSnackbar from "../../shared/useSnackbar";
 import HierarchyNavigation from "../../shared/Animation/HierarchyNavigation";
+import ModalAsignacionInstructor from "./modalAsignacionInstructor";
+
+// API URL base
+const API_URL = "http://localhost:8000";
 
 // Interfaz adaptada a la estructura real
 interface Ficha {
@@ -38,6 +44,8 @@ interface Ficha {
   programa_idprograma: number;
   estado_ficha_idestado_ficha: number;
   nombre_estado_ficha?: string; // Agregamos el nombre del estado
+  funcionario_idfuncionario?: number; // ID del instructor asignado
+  nombre_instructor?: string; // Nombre del instructor asignado
   id?: number; // Para DataGrid
 }
 
@@ -59,6 +67,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
   const [loading, setLoading] = useState(true);
   const [loadingEstados, setLoadingEstados] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openAsignacionModal, setOpenAsignacionModal] = useState(false);
   const [editando, setEditando] = useState(false);
   const [fichaActual, setFichaActual] = useState<number | null>(null);
   const [nuevaFicha, setNuevaFicha] = useState({
@@ -70,6 +79,17 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
 
   // Estado para la animación
   const [showAnimation, setShowAnimation] = useState(false);
+
+  // Estado para notificaciones adicionales
+  const [notificacion, setNotificacion] = useState<{
+    mensaje: string;
+    tipo: "success" | "error" | "info" | "warning";
+    abierto: boolean;
+  }>({
+    mensaje: "",
+    tipo: "info",
+    abierto: false
+  });
 
   // Extraer datos adicionales del estado si están disponibles
   const stateData = location.state || {};
@@ -92,7 +112,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
     setLoadingEstados(true);
 
     try {
-      const res = await fetch("http://localhost:8000/estados_ficha", {
+      const res = await fetch(`${API_URL}/estados_ficha`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -122,7 +142,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
     setLoading(true);
 
     try {
-      const res = await fetch(`http://localhost:8000/fichas/programa/${programaId}`, {
+      const res = await fetch(`${API_URL}/fichas/programa/${programaId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -216,12 +236,12 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
     }
 
     try {
-      let url = "http://localhost:8000/fichas";
+      let url = `${API_URL}/fichas`;
       let method = "POST";
 
       // Si estamos editando, cambiamos la URL y el método
       if (editando && fichaActual) {
-        url = `http://localhost:8000/fichas/${fichaActual}`;
+        url = `${API_URL}/fichas/${fichaActual}`;
         method = "PUT";
       }
 
@@ -259,7 +279,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
     if (!window.confirm("¿Estás seguro de que deseas eliminar esta ficha?")) return;
 
     try {
-      const res = await fetch(`http://localhost:8000/fichas/${idficha}`, {
+      const res = await fetch(`${API_URL}/fichas/${idficha}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -279,6 +299,65 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
     }
   };
 
+  // Manejadores para asignación de instructor
+  const handleOpenAsignacionModal = (ficha: Ficha) => {
+    setFichaActual(ficha.idficha || null);
+    setOpenAsignacionModal(true);
+  };
+
+  const handleCloseAsignacionModal = () => {
+    setOpenAsignacionModal(false);
+    setFichaActual(null);
+  };
+
+  const handleAsignarInstructor = async (fichaId: number, funcionarioId: number) => {
+    const token = localStorage.getItem("token");
+    
+    try {
+      // Endpoint para asignar instructor a ficha usando la ruta específica
+      const url = `${API_URL}/funcionarios/fichas/asignar`;
+      
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          idFuncionario: funcionarioId,
+          idFicha: fichaId
+        }),
+      });
+
+      const result = await res.json();
+      
+      if (result.success) {
+        setNotificacion({
+          mensaje: result.message || "Instructor asignado exitosamente",
+          tipo: "success",
+          abierto: true
+        });
+        
+        // Recargar fichas para mostrar la actualización
+        fetchFichas();
+      } else {
+        throw new Error(result.message || "Error al asignar instructor");
+      }
+    } catch (err) {
+      console.error("Error al asignar instructor:", err);
+      setNotificacion({
+        mensaje: err instanceof Error ? err.message : "Error al asignar instructor",
+        tipo: "error",
+        abierto: true
+      });
+      throw err;
+    }
+  };
+
+  const handleCloseNotificacion = () => {
+    setNotificacion({ ...notificacion, abierto: false });
+  };
+
   useEffect(() => {
     // Primero cargamos los estados de ficha
     fetchEstadosFicha();
@@ -293,22 +372,34 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
 
   // Definimos las columnas sin usar valueFormatter para evitar errores
   const columns: GridColDef[] = [
-    { field: "idficha", headerName: "ID", width: 80 },
-    { field: "codigo_ficha", headerName: "Código de Ficha", width: 150 },
+    { field: "idficha", headerName: "ID", width: 70 },
+    { field: "codigo_ficha", headerName: "Código de Ficha", width: 140 },
     {
       field: "fecha_inicio_formateada",
       headerName: "Fecha de Inicio",
-      width: 150
+      width: 130
     },
     {
-      field: "estado_ficha",
-      headerName: "Estado de Ficha",
-      width: 150
+      field: "nombre_estado_ficha",
+      headerName: "Estado",
+      width: 120
+    },
+    {
+      field: "nombre_instructor",
+      headerName: "Instructor",
+      width: 180,
+      renderCell: (params) => (
+        params.row.nombre_instructor ? (
+          <Typography variant="body2">{params.row.nombre_instructor}</Typography>
+        ) : (
+          <Typography variant="body2" color="text.secondary">Sin asignar</Typography>
+        )
+      )
     },
     {
       field: "acciones",
       headerName: "Acciones",
-      width: 150,
+      width: 200,
       sortable: false,
       renderCell: (params) => (
         <Box display="flex" gap={1}>
@@ -318,6 +409,14 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
               onClick={() => handleVerAprendices(params.row)}
             >
               <PersonIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Asignar Instructor">
+            <IconButton
+              color="secondary"
+              onClick={() => handleOpenAsignacionModal(params.row)}
+            >
+              <SchoolIcon />
             </IconButton>
           </Tooltip>
           <Tooltip title="Editar Ficha">
@@ -357,7 +456,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
           Gestion de Fichas
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          ID del programa: {programaId}
+          Programa: {nombreProgramaFromState} (ID: {programaId})
         </Typography>
       </Box>
 
@@ -381,6 +480,7 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
         />
       )}
 
+      {/* Modal para agregar/editar ficha */}
       <Dialog open={openDialog} onClose={handleCloseDialog}>
         <DialogTitle>{editando ? "Editar ficha" : "Agregar nueva ficha"}</DialogTitle>
         <DialogContent>
@@ -436,6 +536,30 @@ const FichasPanel: React.FC<FichasPanelProps> = ({ programaId, nombrePrograma })
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Modal para asignación de instructor */}
+      <ModalAsignacionInstructor
+        open={openAsignacionModal}
+        onClose={handleCloseAsignacionModal}
+        fichaId={fichaActual}
+        onSave={handleAsignarInstructor}
+      />
+
+      {/* Notificaciones adicionales */}
+      <Snackbar
+        open={notificacion.abierto}
+        autoHideDuration={6000}
+        onClose={handleCloseNotificacion}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={handleCloseNotificacion}
+          severity={notificacion.tipo}
+          sx={{ width: '100%' }}
+        >
+          {notificacion.mensaje}
+        </Alert>
+      </Snackbar>
 
       {/* Usando nuestro componente CustomSnackbar */}
       <CustomSnackbar

@@ -1,4 +1,3 @@
-// Actualización para panelAprendiz.tsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -6,11 +5,6 @@ import {
   CircularProgress,
   Paper,
   Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
   IconButton,
   Tooltip
 } from "@mui/material";
@@ -18,11 +12,11 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import DinamicTable from "../../shared/dataTable";
 import CustomSnackbar from "../../shared/customSnackbar";
 import useSnackbar from "../../shared/useSnackbar";
-import FormularioAprendiz from "./FormularioAprendiz ";
+import FormularioAprendiz from "./FormularioAprendiz";
 import HierarchyNavigation from "../../shared/Animation/HierarchyNavigation";
 
 // Interfaz del aprendiz, adaptada según el modelo
@@ -51,20 +45,17 @@ interface AprendizPanelProps {
 }
 
 const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nombrePrograma }) => {
-  const navigate = useNavigate();
   const location = useLocation();
   const [aprendices, setAprendices] = useState<Aprendiz[]>([]);
   const [loading, setLoading] = useState(true);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
   const [openFormulario, setOpenFormulario] = useState(false);
   const [aprendizSeleccionado, setAprendizSeleccionado] = useState<Aprendiz | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<{open: boolean, id: number | null}>({
-    open: false, 
-    id: null
-  });
   
   // Estado para la animación
   const [showAnimation, setShowAnimation] = useState(false);
+  // Estado para controlar si estamos en modo edición
+  const [editando, setEditando] = useState(false);
   
   // Extraemos datos del estado de navegación si están disponibles
   const stateData = location.state || {};
@@ -114,9 +105,13 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
 
   const handleAbrirFormulario = (aprendiz?: Aprendiz) => {
     if (aprendiz) {
+      console.log("Editando aprendiz:", aprendiz);
       setAprendizSeleccionado(aprendiz);
+      setEditando(true);
     } else {
+      console.log("Creando nuevo aprendiz");
       setAprendizSeleccionado(null);
+      setEditando(false);
     }
     setOpenFormulario(true);
   };
@@ -124,19 +119,17 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
   const handleCerrarFormulario = () => {
     setOpenFormulario(false);
     setAprendizSeleccionado(null);
+    setEditando(false);
   };
 
-  const handleEliminarAprendiz = (id: number) => {
-    setConfirmDelete({ open: true, id });
-  };
-
-  const confirmarEliminacion = async () => {
-    if (!confirmDelete.id) return;
-    
+  const handleEliminar = async (id: number) => {
     const token = localStorage.getItem("token");
     
+    // Utilizamos confirm como en panelProgramas en lugar del Dialog personalizado
+    if (!window.confirm("¿Deseas eliminar este aprendiz? Esta acción no se puede deshacer.")) return;
+    
     try {
-      const res = await fetch(`http://localhost:8000/aprendiz/${confirmDelete.id}`, {
+      const res = await fetch(`http://localhost:8000/aprendiz/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -154,13 +147,7 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
     } catch (err) {
       console.error("Error al eliminar aprendiz:", err);
       showSnackbar("Error al conectar con el servidor", "error");
-    } finally {
-      setConfirmDelete({ open: false, id: null });
     }
-  };
-
-  const handleCancelarEliminacion = () => {
-    setConfirmDelete({ open: false, id: null });
   };
 
   useEffect(() => {
@@ -169,16 +156,27 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
 
   const rowsForTable = aprendices.map(aprendiz => ({
     id: aprendiz.idaprendiz,
+    idaprendiz: aprendiz.idaprendiz,
     nombre: `${aprendiz.nombres_aprendiz} ${aprendiz.apellidos_aprendiz}`,
-    documento: `${aprendiz.abreviatura_tipo_documento} ${aprendiz.documento_aprendiz}`,
+    documento: `${aprendiz.abreviatura_tipo_documento || ''} ${aprendiz.documento_aprendiz}`,
     telefono: aprendiz.telefono_aprendiz,
     email: aprendiz.email_aprendiz,
-    estado: aprendiz.estado_aprendiz
+    estado: aprendiz.estado_aprendiz,
+    // Guardamos todos los campos para cuando necesitemos editar
+    documento_aprendiz: aprendiz.documento_aprendiz,
+    nombres_aprendiz: aprendiz.nombres_aprendiz,
+    apellidos_aprendiz: aprendiz.apellidos_aprendiz,
+    telefono_aprendiz: aprendiz.telefono_aprendiz,
+    email_aprendiz: aprendiz.email_aprendiz, 
+    password_aprendiz: aprendiz.password_aprendiz,
+    ficha_idficha: aprendiz.ficha_idficha,
+    estado_aprendiz_idestado_aprendiz: aprendiz.estado_aprendiz_idestado_aprendiz,
+    tipo_documento_idtipo_documento: aprendiz.tipo_documento_idtipo_documento,
+    abreviatura_tipo_documento: aprendiz.abreviatura_tipo_documento
   }));
   
-
   const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 70 },
+    { field: "idaprendiz", headerName: "ID", width: 70 },
     { field: "nombre", headerName: "Nombre Completo", width: 200 },
     { field: "documento", headerName: "Documento", width: 160 },
     { field: "telefono", headerName: "Teléfono", width: 130 },
@@ -201,7 +199,7 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
           <Tooltip title="Eliminar Aprendiz">
             <IconButton
               color="error"
-              onClick={() => handleEliminarAprendiz(params.row.id)}
+              onClick={() => handleEliminar(params.row.idaprendiz)}
             >
               <DeleteIcon />
             </IconButton>
@@ -212,7 +210,6 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
     },
   ];
   
-
   return (
     <Paper elevation={3} sx={{ p: 3 }}>
       {/* Componente de navegación jerárquica */}
@@ -255,6 +252,8 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
           columns={columns}
           pagination={{ page: 0, pageSize: 10 }}
           width={"100%"}
+          height={500}
+          enableCheckboxSelection={false}
         />
       )}
 
@@ -265,32 +264,8 @@ const PanelAprendiz: React.FC<AprendizPanelProps> = ({ fichaId, codigoFicha, nom
         aprendiz={aprendizSeleccionado}
         fichaId={fichaId}
         onAprendizCreated={fetchAprendices}
+        editando={editando}  // Pasamos la bandera de edición al formulario
       />
-
-      {/* Diálogo de confirmación para eliminar */}
-      <Dialog
-        open={confirmDelete.open}
-        onClose={handleCancelarEliminacion}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
-      >
-        <DialogTitle id="alert-dialog-title">
-          Confirmar eliminación
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            ¿Está seguro de que desea eliminar este aprendiz? Esta acción no se puede deshacer.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelarEliminacion} color="inherit">
-            Cancelar
-          </Button>
-          <Button onClick={confirmarEliminacion} color="error" variant="contained" autoFocus>
-            Eliminar
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       <CustomSnackbar snackbar={snackbar} handleClose={closeSnackbar} />
     </Paper>
